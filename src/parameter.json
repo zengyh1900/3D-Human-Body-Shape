@@ -1,4 +1,6 @@
 {
+  "male":   1,
+  "female": 2,
   "face_num": 25000,
   "vertex_num": 12500,
   "body_count": 1531,

@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#coding=utf-8
+# coding=utf-8
 
 import sys
 sys.path.append("..")
@@ -13,6 +13,7 @@ class deformHybrid:
         and keep others unchanged
     '''
     __metaclass__ = Singleton
+
     def __init__(self, data):
         self.type = "deform-hybrid"
         self.data = data
@@ -20,16 +21,17 @@ class deformHybrid:
         self.deformation = None
         self.vertex = None
         self.switcher = {
-                1: self.all_dad,
-                2: self.v_part_dad,
-                3: self.all_dav,
-                4: self.part_dav,
+            1: self.all_dad,
+            2: self.v_part_dad,
+            3: self.all_dav,
+            4: self.part_dav,
         }
         self.demo_num = self.data.measure_num
 
     # ------------------------------------------------------------------------------------
     '''given measures(normalized), mapping to deformation, using hybrid method '''
     # ------------------------------------------------------------------------------------
+
     def mapping(self, data):
         diff = []
         for i in range(0, len(self.prev)):
@@ -40,10 +42,11 @@ class deformHybrid:
         measures = self.data.mean_measures + self.data.std_measures * measures
 
         if len(diff) != 1:
-            print ("deform-local pure synthesize")
+            print("deform-local pure synthesize")
             deform = []
             for i in range(0, self.data.face_num):
-                mask = np.array(self.data.mask[i * 19:i * 19 + 19, 0]).reshape(19, 1)
+                mask = np.array(
+                    self.data.mask[i * 19:i * 19 + 19, 0]).reshape(19, 1)
                 data = np.array(measures[mask])
                 data.shape = (data.size, 1)
                 s = self.data.L_list[i].dot(data)
@@ -58,35 +61,39 @@ class deformHybrid:
     # ------------------------------------------------------------------------------------
     '''given measures(normalized), mapping to deformation, using hybrid method '''
     # ------------------------------------------------------------------------------------
+
     def all_dad(self, index, measures):
-        print ("  deform-local hybrid method: all deform + deform: ")
+        print("  deform-local hybrid method: all deform + deform: ")
         sum_list = self.data.m2f[index][0] + self.data.m2f[index][1]
-        print ("  %s, correlated faces num: %d"%(self.data.measure_str[index] , len(sum_list)))
+        print("  %s, correlated faces num: %d" %
+              (self.data.measure_str[index], len(sum_list)))
         for i in range(0, len(sum_list)):
             k = sum_list[i]  # No. of face
-            mask = np.array(self.data.mask[k * 19:k * 19 + 19, 0]).reshape(19, 1)
+            mask = np.array(
+                self.data.mask[k * 19:k * 19 + 19, 0]).reshape(19, 1)
             data = np.array(measures[mask])
             data.shape = (data.size, 1)
             s = self.data.L_list[k].dot(data)
-            self.deformation[9*k:9*k+9,0] = [c for c in s.flat]
-        [self.vertex, n, f] =  self.data.d_synthesize(self.deformation)
+            self.deformation[9 * k:9 * k + 9, 0] = [c for c in s.flat]
+        [self.vertex, n, f] = self.data.d_synthesize(self.deformation)
         return [self.vertex, n, f]
-
 
     # ------------------------------------------------------------------------------------
     '''part deform + deform , using measure->part->face_>vertex'''
     # ------------------------------------------------------------------------------------
+
     def v_part_dad(self, index, measures):
         pure_face = self.data.face_vertex[index][0]
         edge_face = self.data.face_vertex[index][1]
         vertex_set = self.data.face_vertex[index][2]
-        print ("  %s, pure faces num: %d, edge faces num: %d" % \
+        print("  %s, pure faces num: %d, edge faces num: %d" %
               (self.data.measure_str[index], len(pure_face), len(edge_face)))
         deform = []
         # for pure faces
         for i in range(0, len(pure_face)):
             k = pure_face[i]
-            mask = np.array(self.data.mask[k * 19:k * 19 + 19, 0]).reshape(19, 1)
+            mask = np.array(
+                self.data.mask[k * 19:k * 19 + 19, 0]).reshape(19, 1)
             data = np.array(measures[mask])
             data.shape = (data.size, 1)
             s = self.data.L_list[k].dot(data)
@@ -95,7 +102,7 @@ class deformHybrid:
         # for edge faces
         for i in range(0, len(edge_face)):
             k = edge_face[i]
-            s = self.deformation[k*9:k*9+9, 0]
+            s = self.deformation[k * 9:k * 9 + 9, 0]
             deform += [a for a in s.flat]
         # merge new vertex to old vertex
         deform = np.array(deform).reshape(len(deform), 1)
@@ -106,7 +113,8 @@ class deformHybrid:
         # error = Atd - rebuild
         # print self.vertex[:100,0]
         # ==================================================
-        mat = np.array(mat[:len(vertex_set) * 3, 0]).reshape(len(vertex_set) * 3, 1)
+        mat = np.array(mat[:len(vertex_set) * 3, 0]
+                       ).reshape(len(vertex_set) * 3, 1)
         for i in range(0, len(vertex_set)):
             k = vertex_set[i]
             self.vertex[k * 3:k * 3 + 3, 0] = mat[i * 3:i * 3 + 3, 0]
@@ -115,16 +123,19 @@ class deformHybrid:
     # ------------------------------------------------------------------------------------
     '''given measures(normalized), mapping to deformation, using hybrid method '''
     # ------------------------------------------------------------------------------------
+
     def part_dad(self, index, measures):
-        print ("  deform-local hybrid method: part deform + deform: ")
+        print("  deform-local hybrid method: part deform + deform: ")
         l1 = len(self.data.m2f[index][0])
         l2 = len(self.data.m2f[index][1])
-        print ("  %s, pure faces num: %d, edge faces num: %d" % (self.data.measure_str[index], l1, l2))
+        print("  %s, pure faces num: %d, edge faces num: %d" %
+              (self.data.measure_str[index], l1, l2))
         deform = []
         # for pure faces
         for i in range(0, l1):
             k = self.data.m2f[index][0][i]
-            mask = np.array(self.data.mask[k * 19:k * 19 + 19, 0]).reshape(19, 1)
+            mask = np.array(
+                self.data.mask[k * 19:k * 19 + 19, 0]).reshape(19, 1)
             data = np.array(measures[mask])
             data.shape = (data.size, 1)
             s = self.data.L_list[k].dot(data)
@@ -133,7 +144,7 @@ class deformHybrid:
         # for edge faces
         for i in range(0, l2):
             k = self.data.m2f[index][1][i]
-            s = self.deformation[k*9:k*9+9, 0]
+            s = self.deformation[k * 9:k * 9 + 9, 0]
             deform += [a for a in s.flat]
         # merge new vertex to old vertex
         vertex_set = self.data.m2v_list[index][0]
@@ -141,11 +152,13 @@ class deformHybrid:
         Atd = self.data.m2v_A[index].transpose().dot(deform)
         mat = self.data.m2v_lu[index].solve(Atd)
         # ===================debug===========================
-        rebuild = (self.data.m2v_A[index].transpose().dot(self.data.m2v_A[index])).dot(mat)
+        rebuild = (self.data.m2v_A[index].transpose().dot(
+            self.data.m2v_A[index])).dot(mat)
         error = Atd - rebuild
-        print (self.vertex[:100,0])
+        print(self.vertex[:100, 0])
         # ==================================================
-        mat = np.array(mat[:len(vertex_set) * 3, 0]).reshape(len(vertex_set) * 3, 1)
+        mat = np.array(mat[:len(vertex_set) * 3, 0]
+                       ).reshape(len(vertex_set) * 3, 1)
         for i in range(0, len(vertex_set)):
             k = vertex_set[i]
             self.vertex[k * 3:k * 3 + 3, 0] = mat[i * 3:i * 3 + 3, 0]
@@ -154,16 +167,19 @@ class deformHybrid:
     # ------------------------------------------------------------------------------------
     '''given measures(normalized), mapping to deformation, using hybrid method '''
     # ------------------------------------------------------------------------------------
+
     def all_dav(self, index, measures):
-        print ("  deform-local hybrid method: all deform + vertex: ")
-        other_vertex = [c for c in range(0, self.data.vertex_num) if c not in self.data.m2v_list[index][2]]
-        print ("  %s, pure faces num: %d, other vertex num: %d" % \
+        print("  deform-local hybrid method: all deform + vertex: ")
+        other_vertex = [c for c in range(
+            0, self.data.vertex_num) if c not in self.data.m2v_list[index][2]]
+        print("  %s, pure faces num: %d, other vertex num: %d" %
               (self.data.measure_str[index], len(self.data.m2f[index][0]), len(other_vertex)))
         deform = []
         # for deformation of pure faces
         for i in range(0, len(self.data.m2f[index][0])):
             k = self.data.m2f[index][0][i]
-            mask = np.array(self.data.mask[k * 19:k * 19 + 19, 0]).reshape(19, 1)
+            mask = np.array(
+                self.data.mask[k * 19:k * 19 + 19, 0]).reshape(19, 1)
             data = np.array(measures[mask])
             data.shape = (data.size, 1)
             s = self.data.L_list[k].dot(data)
@@ -177,7 +193,8 @@ class deformHybrid:
         deform = np.array(deform).reshape(len(deform), 1)
         Atd = self.data.m2v_A[index].transpose().dot(deform)
         mat = self.data.m2v_lu[index].solve(Atd)
-        mat = np.array(mat[:self.data.vertex_num * 3, :]).reshape(self.data.vertex_num * 3, 1)
+        mat = np.array(mat[:self.data.vertex_num * 3, :]
+                       ).reshape(self.data.vertex_num * 3, 1)
         # merge
         self.vertex = mat
         return [self.vertex, -self.data.o_normals, self.data.o_faces - 1]
@@ -185,17 +202,19 @@ class deformHybrid:
     # ------------------------------------------------------------------------------------
     '''given measures(normalized), mapping to deformation, using hybrid method '''
     # ------------------------------------------------------------------------------------
+
     def part_dav(self, index, measures):
-        print ("  deform-local hybrid method: part deform + vertex: ")
+        print("  deform-local hybrid method: part deform + vertex: ")
         edge_set = self.data.m2v_list[index][1]
         vertex_set = self.data.m2v_list[index][0]
-        print ("  %s, pure faces num: %d, edge vertex num: %d" % \
+        print("  %s, pure faces num: %d, edge vertex num: %d" %
               (self.data.measure_str[index], len(self.data.m2f[index][0]), len(edge_set)))
         deform = []
         # for deformation of pure faces
         for i in range(0, len(self.data.m2f[index][0])):
             k = self.data.m2f[index][0][i]
-            mask = np.array(self.data.mask[k * 19:k * 19 + 19, 0]).reshape(19, 1)
+            mask = np.array(
+                self.data.mask[k * 19:k * 19 + 19, 0]).reshape(19, 1)
             data = np.array(measures[mask])
             data.shape = (data.size, 1)
             s = self.data.L_list[k].dot(data)
@@ -209,7 +228,8 @@ class deformHybrid:
         deform = np.array(deform).reshape(len(deform), 1)
         Atd = self.data.m2v_A[index].transpose().dot(deform)
         mat = self.data.m2v_lu[index].solve(Atd)
-        mat = np.array(mat[:len(vertex_set) * 3, :]).reshape(len(vertex_set) * 3, 1)
+        mat = np.array(mat[:len(vertex_set) * 3, :]
+                       ).reshape(len(vertex_set) * 3, 1)
         # merge
         for i in range(0, len(vertex_set)):
             k = vertex_set[i]
