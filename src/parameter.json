@@ -13,8 +13,8 @@
   "reload_obj": false,
   "reload_cp": false,
   "reload_m_data": false,
-  "reload_m_basis": true,
-  "reload_cfTable": true,
+  "reload_m_basis": false,
+  "reload_cfTable": false,
 
   "reload_vertex_basis": false,
   "reload_deform_data": false,

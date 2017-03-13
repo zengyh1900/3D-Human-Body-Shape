@@ -41,12 +41,12 @@ class MetaData:
         self.f_num = self.paras['f_num']
 
         # load all data
+        self.cp = self.load_cp()
         [self.facet, self.normals] = self.load_template()
         [self.file_list, self.vertex, self.mean_vertex,
             self.std_vertex] = self.obj2data()
-        self.cp = self.load_cp()
-        [self.measure, self.mean_measure, self.std_measure] =\
-            self.load_measure()
+        [self.measure, self.mean_measure, self.std_measure,
+            self.t_measure] = self.load_measure()
         self.body_num = len(self.file_list)
 
     # load normal data and facet information for female and male
@@ -148,9 +148,11 @@ class MetaData:
             measure = numpy.load(open(m_file, "rb"))
         mean_measure = numpy.array(measure.mean(axis=1)).reshape(self.m_num, 1)
         std_measure = numpy.array(measure.std(axis=1)).reshape(self.m_num, 1)
+        t_measure = measure - mean_measure
+        t_measure /= std_measure
         print(' [**] finish load_measure for %d in %fs' %
               (self.flag_, time.time() - start))
-        return[measure, mean_measure, std_measure]
+        return[measure, mean_measure, std_measure, t_measure]
 
     # calculate measure data from given vertex by control points
     def calc_measures(self, vertex):
