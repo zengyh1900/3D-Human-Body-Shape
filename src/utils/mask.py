@@ -21,10 +21,7 @@ class Masker:
             self.m2f, self.m2v, self.mask] = self.getMap()
         self.face_vertex = self.calc_m2p2f2v()
 
-    # ---------------------------------------------------------------
-    '''loading information of color'''
-    # ---------------------------------------------------------------
-
+    # loading information of color
     def getColor(self):
         print(' [**] begin loading color data ...')
         color_list_path = self.dataPath + "color_list.npy"
@@ -57,10 +54,7 @@ class Masker:
         print(' [**] finish loading color data.')
         return [color_list, color_set]
 
-    # ---------------------------------------------------------------
-    '''loading information of p2m, p2p, p2f, m2p, m2f, m2v'''
-    # ---------------------------------------------------------------
-
+    # loading information of p2m, p2p, p2f, m2p, m2f, m2v
     def getMap(self):
         print(' [**] begin loading color data ...')
         p2m_path = "part2measure_v%d" % self.mapVersion
@@ -140,10 +134,7 @@ class Masker:
         print(' [**] finish loading color data.')
         return [p2m, p2p, p2f, m2p, m2f, m2v, mask]
 
-    # ----------------------------------------------------------------------------------------
-    '''pre calculate measure->part->face->vertex_set'''
-    # ----------------------------------------------------------------------------------------
-
+    # pre calculate measure->part->face->vertex_set
     def calc_m2p2f2v(self):
         face_vertex_file = self.dataPath + "m2p2f2v%d" % (self.mapVersion)
         print(' [**] begin load m2p2f2v....')
@@ -191,10 +182,10 @@ class Masker:
         print(' [**] finish loading m2p2f2v in %fs' % (time.time() - start))
         return face_vertex
 
-#######################################################################
-#######################################################################
+
+# test for this module
 if __name__ == "__main__":
     filename = "../parameter.json"
-    data = rawData(filename)
+    data = MetaData(filename)
     mask = Masker(data)
     print(mask.color_set)

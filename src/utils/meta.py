@@ -26,8 +26,6 @@ class Singleton(type):
 #     normals, file_list, faces, vertex(o, t, mean, std)
 #     measure(o, t, mean, std), control point
 class MetaData:
-    __metaclass__ = Singleton
-
     def __init__(self, filename, flag):
         with open(filename, 'r') as f:
             self.paras = json.load(f)
@@ -218,7 +216,7 @@ class MetaData:
         file.close()
 
     # calculating normals
-    def ComputeNormals(self):
+    def compute_normals(self):
         self.normals = []
         vertexNormalLists = [[] for i in range(0, len(self.o_vertex))]
         for face in self.o_faces:
@@ -244,5 +242,5 @@ if __name__ == "__main__":
     filename = "../parameter.json"
     male_flag = 1
     female_flag = 2
-    # male_body = MetaData(filename, male_flag)
+    male_body = MetaData(filename, male_flag)
     female_body = MetaData(filename, female_flag)

@@ -7,137 +7,117 @@ import scipy.sparse.linalg
 import scipy.sparse
 
 
-# A basisData contains data of deform-based
-# v_basis, v_sigma, v_pca_mean, v_pca_std, v_coeff
+# A Reshaper contains data of deform-based
+# v_basis, v_coeff, v_pca_mean, v_pca_std
 # v-synthesize
 # d_inv_mean, deform(o, t, std, mean)
-# d_basis, d_sigma, d_pca_mean, d_pca_std, d_coeff
+# d_basis, d_coeff, d_pca_mean, d_pca_std
 # A, LU for transfer deform to vertex
 class Reshaper:
-    __metaclass__ = Singleton
 
     def __init__(self, data):
         self.data = data
-        self.NPYpath = self.data.paras['dataPath'] + "NPYdata/"
-        self.basisDataPath = self.data.paras['dataPath'] + "NPYdata/basisData/"
+        self.flag_ = self.data.flag_
+        self.data_path = self.data.paras['data_path'] + "basis/"
         self.d_basis_num = self.data.paras['d_basis_num']
         self.v_basis_num = self.data.paras['v_basis_num']
-        [self.v_basis, self.v_sigma, self.v_pca_mean, self.v_pca_std, self.v_coeff] = \
-            self.get_vertex_basis()
-        [self.d_inv_mean, self.t_deform, self.o_deform, self.mean_deform, self.std_deform] = \
-            self.load_deform_data()
-        [self.d_basis, self.d_sigma, self.d_pca_mean, self.d_pca_std, self.d_coeff] = \
-            self.get_deform_basis()
+
+        [self.v_basis, self.v_coeff, self.v_pca_mean, self.v_pca_std] = \
+            self.get_v_basis()
+        [self.d_inv_mean, self.deform] = self.load_d_data()
+        [self.d_basis, self.d_coeff, self.d_pca_mean, self.d_pca_std] = \
+            self.get_d_basis()
         [self.A, self.lu] = self.load_d2v_matrix()
 
     # calculating vertex-based presentation(PCA)
-    def get_vertex_basis(self):
-        print(" [**] begin get_vertex_basis ...")
-        v_basis_file = self.basisDataPath + 'v_basis.npy'
-        v_sigma_file = self.basisDataPath + 'v_sigma.npy'
-        v_pca_mean_file = self.basisDataPath + 'v_pca_mean.npy'
-        v_pca_std_file = self.basisDataPath + 'v_pca_std.npy'
-        v_coeff_file = self.basisDataPath + 'v_coeff.npy'
+    def get_v_basis(self):
+        print(" [**] begin get_v_basis ...")
+        v_basis_file = self.data_path + 'v_basis_0%d.npy' % self.flag_
+        v_coeff_file = self.data_path + 'v_coeff_0%d.npy' % self.flag_
+        v_pca_mean_file = self.data_path + 'v_pca_mean_0%d.npy' % self.flag_
+        v_pca_std_file = self.data_path + 'v_pca_std_0%d.npy' % self.flag_
         start = time.time()
-        if self.data.paras['reload_vertex_basis']:
+        if self.data.paras['reload_v_basis']:
             # principle component analysis
-            v_basis, v_sigma, V = np.linalg.svd(
-                self.data.t_vertex, full_matrices=0)
-            v_coeff = np.dot(v_basis.transpose(), self.data.t_vertex)
+            v = self.data.vertex.copy()
+            v.shape = (self.data.body_num, 3 * self.v_num)
+            v = v.transpose()
+            v_basis, v_sigma, V = np.linalg.svd(v, full_matrices=0)
+            v_coeff = np.dot(v_basis.transpose(), v)
             v_pca_mean = np.array(np.mean(v_coeff, axis=1))
             v_pca_mean.shape = (v_pca_mean.size, 1)
             v_pca_std = np.array(np.std(v_coeff, axis=1))
             v_pca_std.shape = (v_pca_std.size, 1)
-            v_basis = np.array(v_basis[::, :50]).reshape(v_basis.shape[0], 50)
-            v_coeff = np.array(v_coeff[:50, ::]).reshape(
-                50, self.data.body_count)
-            self.data.save_NPY([v_basis_file, v_sigma_file, v_pca_mean_file, v_pca_std_file, v_coeff_file],
-                               [v_basis, v_sigma, v_pca_mean, v_pca_std, v_coeff])
-            print(' [**] finish get_vertex_basis in %fs' %
-                  (time.time() - start))
-            return [v_basis, v_sigma, v_pca_mean, v_pca_std, v_coeff]
+            v_basis = np.array(v_basis[::, :50])
+            v_basis.shape = (v_basis.shape[0], 50)
+            v_coeff = np.array(v_coeff[:50, ::])
+            v_coeff.shape = (50, self.data.body_num)
+            numpy.save(open(v_basis_file, "wb"), v_basis)
+            numpy.save(open(v_coeff_file, "wb"), v_coeff)
+            numpy.save(open(v_pca_mean_file, "wb"), v_pca_mean)
+            numpy.save(open(v_pca_std_file, "wb"), v_pca_std)
         else:
-            print(' [**] finish get_vertex_basis in %fs' %
-                  (time.time() - start))
-            return self.data.load_NPY([v_basis_file, v_sigma_file, v_pca_mean_file, v_pca_std_file, v_coeff_file])
+            v_basis = numpy.load(open(v_basis_file, "rb"))
+            v_coeff = numpy.load(open(v_coeff_file, "rb"))
+            v_pca_mean = numpy.load(open(v_pca_mean_file, "rb"))
+            v_pca_std = numpy.load(open(v_pca_std_file, "rb"))
+        print(' [**] finish get_v_basis in %fs' % (time.time() - start))
+        return [v_basis, v_coeff, v_pca_mean, v_pca_std]
 
-    # synthesize a body by vertex-based, given coeff of pca basis before trunck 
+    # synthesize a body by vertex-based
     def v_synthesize(self, weight):
-        # start = time.time()
         basis = np.array(self.v_basis[::, :self.v_basis_num]).reshape(
             self.v_basis.shape[0], self.v_basis_num)
         weight = np.array(weight).reshape(self.v_basis_num, 1)
-        for i in range(0, weight.shape[0]):
-            weight[i, 0] = max(weight[i, 0], self.v_pca_mean[
-                               i] - 3 * self.v_pca_std[i])
-            weight[i, 0] = min(weight[i, 0], self.v_pca_mean[
-                               i] + 3 * self.v_pca_std[i])
-        vertex = self.data.mean_vertex + \
+        v = self.data.mean_vertex + \
             np.dot(basis, weight) * self.data.std_vertex
-        vertex = vertex.reshape(vertex.size, 1)
-        # print '  synthesis by vertex-based global in %f
-        # s'%(time.time()-start)
-        return [vertex, -self.data.o_normals, self.data.o_faces - 1]
+        v.shape(v.size, 1)
+        return [v, -self.data.normals, self.data.facet - 1]
 
     # loading deform-based data
-    def load_deform_data(self):
-        print(" [**] begin load_deform_data ...")
-        d_inv_mean_file = self.basisDataPath + 'd_inv_mean.npy'
-        t_deform_file = self.basisDataPath + 't_deform.npy'
-        o_deform_file = self.basisDataPath + 'o_deform.npy'
-        mean_deform_file = self.basisDataPath + 'mean_deform.npy'
-        std_deform_file = self.basisDataPath + 'std_deform.npy'
+    def load_d_data(self):
+        print(" [**] begin load_d_data ...")
+        d_inv_mean_file = self.data_path + 'd_inv_mean_0%d.npy' % self.flag_
+        deform_file = self.data_path + 'deform_0%d.npy' % self.flag_
         start = time.time()
-        if self.data.paras['reload_deform_data']:
+        if self.data.paras['reload_d_data']:
             d_inv_mean = self.get_inv_mean()
-            o_deform = np.matlib.zeros(
-                (self.data.face_num * 9, self.data.o_vertex.shape[1]))
+            deform = np.zeros((self.data.body_num, self.data.f_num, 9))
             # calculate deformation mat of each body shape
             for i in range(0, self.data.face_num):
                 print('loading deformation of each body: NO. ', i)
-                face = [k - 1 for k in self.data.o_faces[3 * i:3 * i + 3, 0]]
-                for j in range(0, self.data.o_vertex.shape[1]):
-                    v1 = self.data.o_vertex[3 * face[0]: 3 * face[0] + 3, j]
-                    v2 = self.data.o_vertex[3 * face[1]: 3 * face[1] + 3, j]
-                    v3 = self.data.o_vertex[3 * face[2]: 3 * face[2] + 3, j]
-                    Q = numpy.matmul(self.assemble_face(
-                        v1, v2, v3), d_inv_mean[i]).reshape((9, 1))
-                    o_deform[range(i * 9, i * 9 + 9),
-                             j] = np.array([q for q in Q.flat])
-            # normalized deformation mat
-            mean_deform = np.array(o_deform.mean(axis=1))
-            std_deform = np.array(np.std(o_deform, axis=1))
-            t_deform = o_deform.copy()
-            for i in range(0, t_deform.shape[1]):
-                t_deform[:, i] -= mean_deform  # .reshape(data.shape[0])
-            for i in range(0, t_deform.shape[0]):
-                t_deform[i, :] /= std_deform[i, 0]
-            self.data.save_NPY([d_inv_mean_file, t_deform_file, o_deform_file, mean_deform_file, std_deform_file],
-                               [d_inv_mean, t_deform, o_deform, mean_deform, std_deform])
-            print(' [**] finish load_deform_data in %fs' %
-                  (time.time() - start))
-            return [d_inv_mean, t_deform, o_deform, mean_deform, std_deform]
+                v = [k - 1 for k in self.data.facet[i, :]]
+                for j in range(0, self.data.body_num):
+                    v1 = self.data.vertex[j, v[0], :]
+                    v2 = self.data.vertex[j, v[1], :]
+                    v3 = self.data.vertex[j, v[2], :]
+                    Q = self.assemble_face(v1, v2, v3).dot(d_inv_mean[i])
+                    Q.shape = (9, 1)
+                    deform[j, i, :] = Q.flat
+            numpy.save(open(d_inv_mean_file, "wb"), d_inv_mean)
+            numpy.save(open(deform_file, "wb"), deform)
         else:
-            print(' [**] finish load_deform_data in %fs' %
-                  (time.time() - start))
-            return self.data.load_NPY([d_inv_mean_file, t_deform_file, o_deform_file, mean_deform_file, std_deform_file])
+            d_inv_mean = numpy.load(open(d_inv_mean_file, "rb"))
+            deform = numpy.load(open(deform_file, "rb"))
+        print(' [**] finish load_d_data in %fs' % (time.time() - start))
+        return[d_inv_mean, deform]
 
-    # calculating the inverse of mean vertex matrix, v^-1 
+    # calculating the inverse of mean vertex matrix, v^-1
     def get_inv_mean(self):
         print(" [**] begin get_inv_mean ...")
         start = time.time()
         d_inv_mean = np.zeros((self.data.face_num, 3, 3))
         for i in range(0, self.data.face_num):
-            f = [j - 1 for j in self.data.o_faces[i * 3:i * 3 + 3, 0]]
-            d_inv_mean[i] = self.assemble_face(self.data.mean_vertex[f[0] * 3:f[0] * 3 + 3, 0],
-                                               self.data.mean_vertex[
-                                                   f[1] * 3:f[1] * 3 + 3, 0],
-                                               self.data.mean_vertex[f[2] * 3:f[2] * 3 + 3, 0])
+            v = [j - 1 for j in self.data.facet[i, :]]
+            v1 = self.data.mean_vertex[v[0], :]
+            v2 = self.data.mean_vertex[v[1], :]
+            v3 = self.data.mean_vertex[v[2], :]
+            d_inv_mean[i] = self.assemble_face(v1, v2, v3)
             d_inv_mean[i] = np.linalg.inv(d_inv_mean[i])
         print(' [**] finish get_inv_mean in %fs' % (time.time() - start))
         return d_inv_mean
 
-    # import the 4th point of the triangle, and calculate the deformation 
+    # import the 4th point of the triangle, and calculate the deformation
     def assemble_face(self, v1, v2, v3):
         v21 = np.array((v2 - v1))
         v31 = np.array((v3 - v1))
@@ -146,41 +126,47 @@ class Reshaper:
         return np.column_stack((v21, np.column_stack((v31, v41))))
 
     # calculating deform-based presentation(PCA)
-    def get_deform_basis(self):
-        print(" [**] begin get_deform_basis ...")
-        d_coeff_file = self.basisDataPath + 'd_coeff.npy'
-        d_basis_file = self.basisDataPath + 'd_basis.npy'
-        d_sigma_file = self.basisDataPath + 'd_sigma.npy'
-        d_pca_mean_file = self.basisDataPath + 'd_pca_mean.npy'
-        d_pca_std_file = self.basisDataPath + 'd_pca_std.npy'
+    def get_d_basis(self):
+        print(" [**] begin get_d_basis ...")
+        d_basis_file = self.data_path + 'd_basis_0%d.npy' % self.flag_
+        d_coeff_file = self.data_path + 'd_coeff_0%d.npy' % self.flag_
+        d_pca_mean_file = self.data_path + 'd_pca_mean_0%d.npy' % self.flag_
+        d_pca_std_file = self.data_path + 'd_pca_std_0%d.npy' % self.flag_
         start = time.time()
-        if self.data.paras['reload_deform_basis']:
+        if self.data.paras['reload_d_basis']:
             # principle component analysis
-            d_basis, d_sigma, V = np.linalg.svd(self.t_deform, full_matrices=0)
-            d_coeff = np.dot(d_basis.transpose(), self.t_deform)
+            deform = self.data.deform.copy()
+            deform.shape = (9 * self.data.f_num, self.data.body_num)
+            deform = deform.transpose()
+            d_basis, d_sigma, V = np.linalg.svd(deform, full_matrices=0)
+            d_coeff = np.dot(d_basis.transpose(), deform)
             d_pca_mean = np.array(np.mean(d_coeff, axis=1))
             d_pca_mean.shape = (d_pca_mean.size, 1)
             d_pca_std = np.array(np.std(d_coeff, axis=1))
             d_pca_std.shape = (d_pca_std.size, 1)
-            d_basis = np.array(d_basis[::, :50]).reshape(d_basis.shape[0], 50)
-            d_coeff = np.array(d_coeff[:50, ::]).reshape(
-                50, self.data.body_count)
-            self.data.save_NPY([d_coeff_file, d_basis_file, d_sigma_file, d_pca_mean_file, d_pca_std_file],
-                               [d_coeff, d_basis, d_sigma, d_pca_mean, d_pca_std])
-            print(' [**] finish get_deform_basis in %fs' %
-                  (time.time() - start))
-            return [d_basis, d_sigma, d_pca_mean, d_pca_std, d_coeff]
+            d_basis = np.array(d_basis[::, :50])
+            d_basis.shape = (d_basis.shape[0], 50)
+            d_coeff = np.array(d_coeff[:50, ::])
+            d_coeff.shape = (50, self.data.body_num)
+            numpy.save(open(d_basis_file, "wb"), d_basis)
+            numpy.save(open(d_coeff_file, "wb"), d_coeff)
+            numpy.save(open(d_pca_mean_file, "wb"), d_pca_mean)
+            numpy.save(open(d_pca_std_file, "wb"), d_pca_std)
         else:
-            print(' [**] finish get_deform_basis in %fs' %
-                  (time.time() - start))
-            return self.data.load_NPY([d_basis_file, d_sigma_file, d_pca_mean_file, d_pca_std_file, d_coeff_file])
+            d_basis = numpy.load(open(d_basis_file, "rb"))
+            d_coeff = numpy.load(open(d_coeff_file, "rb"))
+            d_pca_mean = numpy.load(open(d_pca_mean_file, "rb"))
+            d_pca_std = numpy.load(open(d_pca_std_file, "wb"))
+        print(' [**] finish get_d_basis in %fs' % (time.time() - start))
+        return [d_basis, d_coeff, d_pca_mean, d_pca_std]
 
-    # construct the matrix = v_mean_inv.dot(the matrix consists of 0 -1...) 
+    # construct the matrix = v_mean_inv.dot(the matrix consists of 0 -1...)
     def construct_coeff_mat(self, mat):
         tmp = -mat.sum(0)
         return np.row_stack((tmp, mat)).transpose()
 
-    # cosntruct the related matrix A to change deformation into vertex using global method
+    # cosntruct the related matrix A to change deformation into vertex using
+    # global method
     def load_d2v_matrix(self):
         print(' [**] begin reload A&lu maxtrix')
         start = time.time()
@@ -189,11 +175,10 @@ class Reshaper:
             rowidx = []
             colidx = []
             r = 0
-            off = self.data.vertex_num * 3
-            shape = (self.data.face_num * 9,
-                     (self.data.vertex_num + self.data.face_num) * 3)
-            # shape = (self.data.face_num * 9+3, (self.data.vertex_num + self.data.face_num) * 3)
-            for i in range(0, self.data.face_num):
+            off = self.data.v_num * 3
+            shape = (self.data.f_num * 9,
+                     (self.data.v_num + self.data.f_num) * 3)
+            for i in range(0, self.data.f_num):
                 print(i)
                 coeff = self.construct_coeff_mat(self.d_inv_mean[i])
                 face = [c - 1 for c in self.data.o_faces[3 * i:3 * i + 3, 0]]
@@ -208,19 +193,6 @@ class Reshaper:
                     colidx += [v1[j], v2[j], v3[j], v4[j], v1[j],
                                v2[j], v3[j], v4[j], v1[j], v2[j], v3[j], v4[j]]
                     r += 3
-            # # plus 3 rows for x, y, z, their mean is zero
-            # # x
-            # data += [1 for c in range(0, self.data.vertex_num)]
-            # rowidx += [r for c in range(0, self.data.vertex_num)]
-            # colidx += [3*c for c in range(0, self.data.vertex_num)]
-            # # y
-            # data += [1 for c in range(0, self.data.vertex_num)]
-            # rowidx += [r+1 for c in range(0, self.data.vertex_num)]
-            # colidx += [3*c+1 for c in range(0, self.data.vertex_num)]
-            # # z
-            # data += [1 for c in range(0, self.data.vertex_num)]
-            # rowidx += [r+2 for c in range(0, self.data.vertex_num)]
-            # colidx += [3*c+2 for c in range(0, self.data.vertex_num)]
 
             A = scipy.sparse.coo_matrix((data, (rowidx, colidx)), shape=shape)
             np.savez(self.NPYpath + "A", row=A.row,
@@ -237,12 +209,8 @@ class Reshaper:
 
     # synthesize a body by deform-based, given deformation, output vertex
     def d_synthesize(self, deformation):
-        # tmp = np.array([[0.0], [0.0], [0.0]])
-        # deformation = np.row_stack((deformation, tmp))
         Atd = self.A.transpose().dot(deformation)
         x = self.lu.solve(Atd)
-        # AtA = self.A.transpose().dot(self.A)
-        # x = np.array(scipy.sparse.linalg.spsolve(AtA, Atd))
         x = x[:self.data.vertex_num * 3]
         # move to center
         x.shape = (self.data.vertex_num, 3)
@@ -250,7 +218,6 @@ class Reshaper:
         for i in range(0, self.data.vertex_num):
             x[i, :] -= x_mean
         x.shape = (self.data.vertex_num * 3, 1)
-        #---------------
         return [x.reshape(x.size, 1), -self.data.o_normals, self.data.o_faces - 1]
 
     # calculate the corresponding deformation from the input vertex
@@ -269,13 +236,13 @@ class Reshaper:
 
 # test for this module
 if __name__ == "__main__":
-    filename = "../parameter.json"
-    data = rawData(filename)
-    model = basisData(data)
-    for i in range(0, 5):
-        deformation = model.o_deform[:, i]
-        [x, normals, f] = model.d_synthesize(deformation)
-        model.data.save_obj("../../result/test.obj", x, f + 1)
-        x.shape = (12500, 3)
-        print(np.mean(x, axis=0))
-        input()
+    male = MetaData("../parameter.json", 1)
+    male_reshaper = Reshaper(male)
+
+    female = MetaData("../parameter.json", 2)
+    female_reshaper = Reshaper(female)
+    # num = numpy.array([i for i in range(0, 24)]).reshape(2, 3, 4)
+    # print(num, num.shape)
+    # num.shape = (2, 12)
+    # num = num.transpose()
+    # print(num, num.shape)

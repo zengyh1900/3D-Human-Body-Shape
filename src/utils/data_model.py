@@ -1,8 +1,6 @@
 #!/usr/bin/python
 # coding=utf-8
 
-import scipy.sparse
-import scipy.sparse.linalg
 from meta import *
 from basis import *
 from mask import *
@@ -26,10 +24,7 @@ class DataModel:
         [self.m2v_A, self.m2v_lu] = switcher.get(
             self.paras['Hybrid_method'], lambda: [0, 0])()
 
-    # --------------------------------------------------------------------------------
-    '''load all data it need '''
-    # -------------------------------------------------------------------------------
-
+    # load all data it need
     def loadData(self):
         self.paras = self.data.paras
         self.NPYpath = self.paras["dataPath"] + "NPYdata/"

@@ -16,19 +16,12 @@ import math
 # output: all correlation between measures
 # usage:  impute the missing value in measure data
 class Miner:
-    __metaclass__ = Singleton
-
     def __init__(self, data):
         # load all necessary data
         self.test_size = 300
         self.data = data
         self.paras = self.data.paras
         self.flag_ = self.data.flag_
-
-        self.GIRTH = numpy.array(self.data.paras["GIRTH"], dtype=bool)
-        self.GIRTH.shape = (self.data.m_num, 1)
-        self.LENGTH = numpy.array(self.data.paras["LENGTH"], dtype=bool)
-        self.LENGTH.shape = (self.data.m_num, 1)
 
         self.data_path = self.paras['data_path'] + "miner/"
         self.ans_path = self.data.ans_path
@@ -39,16 +32,16 @@ class Miner:
 
         self.impute_name = ["SimpleFill", "SimpleAverage",
                             "CaseAmplifify", "KNN", "MICE"]
-        self.impute_method = [SimpleFill(), self.simpleAverage,
-                              self.caseAmplify, KNN(), MICE()]
+        self.impute_method = [SimpleFill(), self.simple_average,
+                              self.case_amplify, KNN(), MICE()]
 
     # given flag, value, predict completed measures
-    def getPredict(self, flag, data):
+    def get_predict(self, flag, data):
         if (flag == 1).sum() == self.data.m_num:
             return data
         else:
             solver = MICE()
-            return self.Imputate(flag, data, solver)
+            return self.imputate(flag, data, solver)
 
     # calculating measure-based presentation(PCA)
     def get_m_basis(self):
@@ -119,7 +112,7 @@ class Miner:
         return table
 
     # given flag value, predict completed measures, simple sum all
-    def simpleAverage(self, flag, in_data):
+    def simple_average(self, flag, in_data):
         for j in range(0, in_data.shape[0]):
             if math.isnan(in_data[j, 0]):
                 coeff = numpy.array(self.cfTable[j, :])
@@ -134,11 +127,11 @@ class Miner:
         return in_data
 
     # Predict, let small smaller, big bigger
-    def caseAmplify(self, flag, in_data):
+    def case_amplify(self, flag, in_data):
         for j in range(0, in_data.shape[0]):
             if math.isnan(in_data[j, 0]):
                 coeff = numpy.array(self.cfTable[j, :])
-                coeff.shape(self.data.m_num, 1)
+                coeff.shape = (self.data.m_num, 1)
                 if (abs(coeff).sum() == 0):
                     in_data[j, 0] = 0
                 else:
@@ -150,11 +143,11 @@ class Miner:
         return in_data
 
     # using imputation for missing data
-    def Imputate(self, flag, in_data, imputor):
+    def imputate(self, flag, in_data, imputor):
         output = in_data.copy()
         output.shape = (self.data.m_num, 1)
         output[~flag] = numpy.nan
-        if isinstance(imputor, type(self.simpleAverage)):
+        if isinstance(imputor, type(self.simple_average)):
             output = imputor(flag, output)
         else:
             tmp = numpy.array(self.data.t_measure[:, self.test_size:])
@@ -166,7 +159,7 @@ class Miner:
     # test all methods
     def test(self):
         print(' [**] Begin predict input data...')
-        table_size = 26
+        table_size = 23
         input_file = self.data_path + "input.xlsx"
         input_wb = load_workbook(filename=input_file)
         sheets = input_wb.get_sheet_names()
@@ -189,11 +182,6 @@ class Miner:
             for j in range(0, self.data.m_num):
                 output_ws.cell(row=(i * table_size) + 3 + j,
                                column=1).value = self.data.measure_str[j]
-            output_ws.cell(row=(i * table_size) + 22,
-                           column=1).value = 'MEAN GIRTH'
-            output_ws.cell(row=(i * table_size) + 23,
-                           column=1).value = 'MEAN LENGTH'
-            output_ws.cell(row=(i * table_size) + 24, column=1).value = 'MEAN'
             k = 2
 
             # test for imputation technology
@@ -206,23 +194,16 @@ class Miner:
                           i, self.impute_name[m], ' sample: ', j)
                     in_data = numpy.array(self.data.t_measure[:, j])
                     in_data.shape = (self.data.m_num, 1)
-                    out = self.Imputate(
+                    out = self.imputate(
                         test_data[i], in_data, self.impute_method[m])
                     error += abs(out - in_data)
                 error /= self.test_size
                 error *= self.data.std_measure
-                print(error)
                 for j in range(0, self.data.m_num):
                     output_ws.cell(row=(i * table_size) + 3 + j,
-                                   column=k).value = error[j, 0]
-                output_ws.cell(row=(i * table_size) + 22, column=k).value =\
-                    numpy.average(abs(error[(~test_data[i]) & self.GIRTH]))
-                output_ws.cell(row=(i * table_size) + 23, column=k).value =\
-                    numpy.average(abs(error[(~test_data[i]) & self.LENGTH]))
-                output_ws.cell(row=(i * table_size) + 24, column=k).value =\
-                    numpy.average(abs(error[(~test_data[i])]))
+                                   column=k).value = round(error[j, 0], 2)
                 k = k + 1
-            output_wb.save(output_file)
+                output_wb.save(output_file)
         output_wb.save(output_file)
         print(' [**] Finish predict input data...')
 
