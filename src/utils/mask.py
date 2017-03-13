@@ -1,22 +1,18 @@
 #!/usr/bin/python
 # coding=utf-8
 
-import sys
-sys.path.append("..")
 import numpy.matlib
-from dataProcess.rawData import *
+from meta import *
 
 
+# A Masker contains data of local mapping
+# color_list, color_set, p2m, p2p, p2f, m2p, m2f, m2v, mask
 class Masker:
-    '''
-        A Masker contains data of local mapping
-        color_list, color_set, p2m, p2p, p2f, m2p, m2f, m2v, mask
-    '''
     __metaclass__ = Singleton
 
     def __init__(self, data):
         self.data = data
-        self.dataPath = self.data.paras['dataPath'] + "NPYdata/localMapper/"
+        self.data_path = self.data.paras['data_path'] + "mask/"
         self.mapVersion = self.data.paras['mapping_version']
         self.part_num = self.data.paras["part_num"]
 
@@ -37,8 +33,8 @@ class Masker:
             tmp = open(self.dataPath + 'body_part.obj', 'r').read()
             tmp = tmp[tmp.index('\nv'): tmp.index("\n#!") - 1].replace('v', '')
             tmp = list(map(float, tmp.replace('\n', ' ').split()))
-            body_part = np.array(tmp).reshape(self.data.vertex_num, 6)
-            body_part = np.array(body_part[:, 3:])
+            body_part = numpy.array(tmp).reshape(self.data.vertex_num, 6)
+            body_part = numpy.array(body_part[:, 3:])
             tmp = set()
             color_list = []
             for i in range(0, self.data.vertex_num):
@@ -79,7 +75,7 @@ class Masker:
         m2f = []
         m2v = []
         p2f = []
-        mask = np.matlib.zeros((19 * self.data.face_num, 1), dtype=bool)
+        mask = numpy.matlib.zeros((19 * self.data.face_num, 1), dtype=bool)
         for i in range(0, self.data.measure_num):
             m2p.append([])
             m2f.append([[], []])

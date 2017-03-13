@@ -1,101 +1,106 @@
 #!/usr/bin/python
 # coding=utf-8
 
-import sys
-sys.path.append("..")
-from dataProcess.rawData import *
+from meta import *
+from fancyimpute import *
 from openpyxl import Workbook
 from openpyxl import load_workbook
-from fancyimpute import KNN, SoftImpute, NuclearNormMinimization, MICE, SimpleFill
-from fancyimpute import MatrixFactorization
-import numpy as np
 import numpy.matlib
+import numpy
 import time
 
 
-class measureMining:
-    '''
-        A measureMining is responsible for mining the correlation between measure data human
-        input:  all original data containing: measure...
-        output: all correlation between measures
-        usage:  given part of measures, and predict other unknown data
-    '''
+# A Miner is responsible for mining the correlation between measure data human
+# input:  all original data containing: measure...
+# output: all correlation between measures
+# usage:  impute the missing value in measure data
+class Miner:
     __metaclass__ = Singleton
 
     def __init__(self, data):
         # load all necessary data
         self.test_size = 300
         self.data = data
-        self.GIRTH = np.array(self.data.paras["GIRTH"], dtype=bool).reshape(
-            self.data.measure_num, 1)
-        self.LENGTH = np.array(self.data.paras["LENGTH"], dtype=bool).reshape(
-            self.data.measure_num, 1)
-        self.filePath = data.paras['dataPath'] + "NPYdata/measureData/"
-        self.m2m = list(self.data.paras['m2m'])
-        [self.m_basis, self.m_sigma, self.m_pca_mean, self.m_pca_std, self.m_coeff] = \
-            self.get_measure_basis()
+        self.paras = self.data.paras
+        self.flag_ = self.data.flag_
+
+        self.GIRTH = numpy.array(self.data.paras["GIRTH"], dtype=bool)
+        self.GIRTH.shape = (self.data.m_num, 1)
+        self.LENGTH = numpy.array(self.data.paras["LENGTH"], dtype=bool)
+        self.LENGTH.shape(self.data.m_num, 1)
+
+        self.data_path = self.paras['dataPath'] + "miner/"
+        self.m2m = list(self.paras['m2m'])
+        [self.m_basis, self.m_coeff, self.m_pca_mean, self.m_pca_std] = \
+            self.get_m_basis()
         self.cfTable = self.itemCF()
 
-        # , "SoftImpute",   "Nuclear", "Matrix" ]#, "Similarity"]
-        self.impute_name = ["SimpleFill", "KNN", "MICE"]
-        self.impute_method = [SimpleFill(), KNN(), MICE()]  # ,
-        # SoftImpute(5), NuclearNormMinimization(),
-        # MatrixFactorization(learning_rate=0.01),
-        # SimilarityWeightedAveraging()]
+        self.impute_name = ["SimpleFill", "SimpleAverage",
+                            "CaseAmplifify" "KNN", "MICE"]
+        self.impute_method = [SimpleFill(), self.simpleAverage,
+                              self.caseAmplify, KNN, MICE()]
+        print(type(self.simpleAverage))
 
-    # -------------------------------------------------------
-    '''calculating measure-based presentation(PCA)'''
-    # -------------------------------------------------------
-
-    def get_measure_basis(self):
-        print(" [**] begin get_measure_basis ...")
-        m_basis_file = self.filePath + 'm_basis.npy'
-        m_sigma_file = self.filePath + 'm_sigma.npy'
-        m_pca_mean_file = self.filePath + 'm_pca_mean.npy'
-        m_pca_std_file = self.filePath + 'm_pca_std.npy'
-        m_coeff_file = self.filePath + 'm_coeff.npy'
-        start = time.time()
-        if self.data.paras["reload_measure_basis"]:
-            # principle component analysis
-            m_basis, m_sigma, M = np.linalg.svd(
-                self.data.t_measures, full_matrices=0)
-            m_coeff = np.dot(m_basis.transpose(), self.data.t_measures)
-            m_pca_mean = np.array(np.mean(m_coeff, axis=1))
-            m_pca_mean.shape = (m_pca_mean.size, 1)
-            m_pca_std = np.array(np.std(m_coeff, axis=1))
-            m_pca_std.shape = (m_pca_std.size, 1)
-            m_basis = np.array(m_basis)
-            m_coeff = np.array(m_coeff).reshape(
-                m_coeff.shape[0], self.data.body_count)
-            self.data.save_NPY([m_basis_file, m_sigma_file, m_pca_mean_file, m_pca_std_file, m_coeff_file],
-                               [m_basis, m_sigma, m_pca_mean, m_pca_std, m_coeff])
-            print(' [**] finish get_vertex_basis in %fs' %
-                  (time.time() - start))
-            return [m_basis, m_sigma, m_pca_mean, m_pca_std, m_coeff]
+    # given flag, value, predict completed measures
+    def getPredict(self, flag, data):
+        if (flag == 1).sum() == self.data.m_num:
+            return data
         else:
-            print(' [**] finish get_vertex_basis in %fs' %
-                  (time.time() - start))
-            return self.data.load_NPY([m_basis_file, m_sigma_file, m_pca_mean_file, m_pca_std_file, m_coeff_file])
+            solver = MICE()
+            return self.Imputate(flag, data, True, solver)
 
-    # ------------------------------------------------------------------------------------------------------
-    '''calculate the similarity between each measure, using Pearson Correlation, training data(300-1531) '''
-    # ------------------------------------------------------------------------------------------------------
+    # calculating measure-based presentation(PCA)
+    def get_m_basis(self):
+        print(" [**] begin get_measure_basis ...")
+        m_basis_file = self.data_path + 'm_basis_0%d.npy' % self.flag_
+        m_coeff_file = self.data_path + 'm_coeff_0%d.npy' % self.flag_
+        m_pca_mean_file = self.data_path + 'm_pca_mean_0%d.npy' % self.flag_
+        m_pca_std_file = self.data_path + 'm_pca_std_0%d.npy' % self.flag_
+        start = time.time()
+        if self.data.paras["reload_m_basis"]:
+            # principle component analysis
+            t_measure = self.data.measure - self.data.mean_measure
+            t_measure /= self.data.std_measure
+            m_basis, sigma, M = numpy.linalg.svd(t_measures, full_matrices=0)
+            m_coeff = numpy.dot(m_basis.transpose(), t_measure)
+            m_pca_mean = numpy.array(numpy.mean(m_coeff, axis=1))
+            m_pca_mean.shape = (m_pca_mean.size, 1)
+            m_pca_std = numpy.array(numpy.std(m_coeff, axis=1))
+            m_pca_std.shape = (m_pca_std.size, 1)
+            m_basis = numpy.array(m_basis)
+            m_coeff = numpy.array(m_coeff).reshape(
+                m_coeff.shape[0], self.data.body_count)
+            numpy.save(open(m_basis_file, "wb"), m_basis)
+            numpy.save(open(m_coeff_file, "wb"), m_coeff)
+            numpy.save(open(m_pca_mean_file, "wb"), m_pca_mean)
+            numpy.save(open(m_pca_std_file, "wb"), m_pca_std)
+        else:
+            m_basis = numpy.load(open(m_basis_file, "rb"))
+            m_coeff = numpy.load(open(m_coeff_file, "rb"))
+            m_pca_mean = numpy.load(open(m_pca_mean_file, "rb"))
+            m_pca_std = numpy.load(open(m_pca_std_file, "rb"))
+        print(' [**] finish get_m_basis in %fs' % (time.time() - start))
+        return [m_basis, m_sigma, m_pca_mean, m_pca_std, m_coeff]
 
+    # cal the similarity between measure, using Pearson Correlation(300-1531)
     def itemCF(self):
         print(' [**] begin get similarity of measures')
         start = time.time()
-        table = np.matlib.zeros((self.data.measure_num, self.data.measure_num))
+        cf_path = self.data_path + "cfTable.npy"
+        table = numpy.zeros((self.data.m_num, self.data.m_num))
         if self.data.paras['reload_cfTable']:
             # calculation
-            for i in range(0, self.data.measure_num):
+            t_measure = self.data.measure - self.data.mean_measure
+            t_measure /= self.data.std_measure
+            for i in range(0, self.data.m_num):
                 table[i, i] = 0
-                for j in range(i + 1, self.data.measure_num):
-                    a = np.array(self.data.t_measures[i, self.test_size:]).reshape(
-                        1, self.data.body_count - self.test_size)
-                    b = np.array(self.data.t_measures[j, self.test_size:]).reshape(
-                        self.data.body_count - self.test_size, 1)
-                    similar = (a.dot(b) / (np.linalg.norm(a)
-                                           * np.linalg.norm(b)))[0, 0]
+                for j in range(i + 1, self.data.m_num):
+                    a = numpy.array(t_measure[i, self.test_size:])
+                    a.shape = (1, self.data.body_num - self.test_size)
+                    b = numpy.array(t_measure[j, self.test_size:])
+                    b.shape(self.data.body_num - self.test_size, 1)
+                    similar = numpy.linalg.norm(a) * numpy.linalg.norm(b)
+                    similar = (a.dot(b) / similar)[0, 0]
                     table[i, j] = table[j, i] = similar
             # save the result in excel
             wb = Workbook()
@@ -111,31 +116,25 @@ class measureMining:
                     ws.cell(row=i * (top + 2) + j + 2,
                             column=2).value = table[i, j]
             wb.save(filename=self.data.paras['ansPath'] + 'similarity.xlsx')
-            self.data.save_NPY([self.filePath + "cfTable.npy"], [table])
-            print(' [**] finish get and save cf of measures in %s s.' %
-                  (time.time() - start))
-            return table
+            numpy.save(open(cf_path, "wb"), table)
         else:
-            print(' [**] finish get and save cf of measures in %s s.' %
-                  (time.time() - start))
-            return self.data.load_NPY([self.filePath + "cfTable.npy"])[0]
+            table = numpy.load(open(cf_path, "rb"))
+        print(' [**] finish load cfTable in %fs.' % (time.time() - start))
+        return table
 
-    # -------------------------------------------------------------------------------------------------
-    '''given flag(means which value is available), value, predict completed measures, simple sum all'''
-    # -------------------------------------------------------------------------------------------------
-
+    # given flag value, predict completed measures, simple sum all
     def simpleAverage(self, flag, data, dist):
-        data = np.array(data).reshape(self.data.measure_num, 1)
+        data = numpy.array(data).reshape(self.data.measure_num, 1)
         output = flag * data
 
         for j in range(0, output.shape[0]):
             if output[j, 0] == 0:
-                coeff = np.array(self.cfTable[j, :]).reshape(
+                coeff = numpy.array(self.cfTable[j, :]).reshape(
                     self.data.measure_num, 1)
                 if (abs(coeff).sum() == 0):
                     output[j, 0] = 0
                 else:
-                    if dist & ((self.GIRTH[j, 0] | self.LENGTH[j, 0]) != False):
+                    if dist & ((self.GIRTH[j, 0] | self.LENGTH[j, 0]) != 0):
                         if self.GIRTH[j, 0]:
                             x = data[flag & self.GIRTH]
                             coeff = coeff[flag & self.GIRTH]
@@ -150,23 +149,20 @@ class measureMining:
                     output[j, 0] = x.dot(coeff) / (abs(coeff).sum())
         return output
 
-    # -------------------------------------------------------------------------------------------------
-    '''Predict, let small smaller, big bigger'''
-    # -------------------------------------------------------------------------------------------------
-
+    # Predict, let small smaller, big bigger
     def caseAmplify(self, flag, data, dist):
         frac = 2.5
-        data = np.array(data).reshape(self.data.measure_num, 1)
+        data = numpy.array(data).reshape(self.data.measure_num, 1)
         output = flag * data
 
         for j in range(0, output.shape[0]):
             if output[j, 0] == 0:
-                coeff = np.array(self.cfTable[j, :]).reshape(
+                coeff = numpy.array(self.cfTable[j, :]).reshape(
                     self.data.measure_num, 1)
                 if (abs(coeff).sum() == 0):
                     output[j, 0] = 0
                 else:
-                    if dist & ((self.GIRTH[j, 0] | self.LENGTH[j, 0]) != False):
+                    if dist & ((self.GIRTH[j, 0] | self.LENGTH[j, 0]) != 0):
                         if self.GIRTH[j, 0]:
                             x = data[flag & self.GIRTH]
                             coeff = coeff[flag & self.GIRTH]
@@ -182,94 +178,17 @@ class measureMining:
                     output[j, 0] = x.dot(tmp) / (abs(tmp).sum())
         return output
 
-    # -------------------------------------------------------------------------------------------------
-    '''using imputation for missing data'''
-    # -------------------------------------------------------------------------------------------------
-
+    # using imputation for missing data
     def Imputate(self, flag, data, dist, imputor):
-        output = np.array(data).reshape(self.data.measure_num, 1)
-        output[~flag] = np.nan
-        tmp = np.array(self.data.t_measures[:, self.test_size:])
-        tmp = np.column_stack((tmp, output)).transpose()
+        output = numpy.array(data).reshape(self.data.measure_num, 1)
+        output[~flag] = numpy.nan
+        tmp = numpy.array(self.data.t_measures[:, self.test_size:])
+        tmp = numpy.column_stack((tmp, output)).transpose()
         tmp = imputor.complete(tmp)
-        output = np.array(tmp[-1, :]).reshape(self.data.measure_num, 1)
+        output = numpy.array(tmp[-1, :]).reshape(self.data.measure_num, 1)
         return output
 
-    # -------------------------------------------------------------------------------------
-    '''given flag(means which value is available), value, predict completed measures'''
-    # -------------------------------------------------------------------------------------
-
-    def getPredict(self, flag, data):
-        if ((flag == True).sum() == self.data.measure_num):
-            return data
-        else:
-            solver = MICE()
-            return self.Imputate(flag, data, True, solver)
-
-    def spetialTest(self):
-        print(' [**] Spetial Test...')
-        table_size = 26
-        input_file = self.filePath + "input.xlsx"
-        input_wb = load_workbook(filename=input_file)
-        sheets = input_wb.get_sheet_names()
-        input_ws = input_wb.get_sheet_by_name(sheets[0])
-        output_file = '../../result/prediction.xlsx'
-        output_wb = Workbook()
-        output_ws = output_wb.get_active_sheet()
-        # read test data
-        test_data = []
-        for i in range(0, 8):
-            flag = np.zeros((self.data.measure_num, 1), dtype=bool)
-            for j in range(0, self.data.measure_num):
-                flag[j, 0] = input_ws.cell(row=2 + j, column=2 + i).value
-            test_data.append(flag)
-
-        # begin test, using 0-300 data, output the offset to mean
-        for i in range(0, len(test_data)):
-            output_ws.cell(row=(i * table_size) + 2, column=1).value = i
-            for j in range(0, self.data.measure_num):
-                output_ws.cell(row=(i * table_size) + 3 + j,
-                               column=1).value = self.data.measure_str[j]
-            output_ws.cell(row=(i * table_size) + 22,
-                           column=1).value = 'MEAN GIRTH'
-            output_ws.cell(row=(i * table_size) + 23,
-                           column=1).value = 'MEAN LENGTH'
-            output_ws.cell(row=(i * table_size) + 24, column=1).value = 'MEAN'
-            k = 2
-
-            flag = test_data[i].copy().repeat(self.test_size, axis=1)
-            # test for imputation technology
-            for m in range(0, len(self.impute_method)):
-                output_ws.cell(row=(i * table_size) + 2,
-                               column=k).value = self.impute_name[m]
-                print('Experiment %d, ' % i, self.impute_name[m])
-                input = self.data.t_measures.copy()
-                input[:, :self.test_size][~flag] = np.nan
-                tmp = self.impute_method[m].complete(input.transpose())
-                output = tmp.transpose()[:, :self.test_size]
-                input = self.data.t_measures[:, :self.test_size]
-                error = np.array(np.mean(abs(output - input), axis=1)
-                                 ).reshape(self.data.measure_num, 1)
-                print(error)
-                # error = error * self.data.std_measures
-                for j in range(0, self.data.measure_num):
-                    output_ws.cell(row=(i * table_size) + 3 + j,
-                                   column=k).value = error[j, 0]
-                output_ws.cell(row=(i * table_size) + 22, column=k).value = np.average(
-                    abs(error[(~test_data[i]) & self.GIRTH]))
-                output_ws.cell(row=(i * table_size) + 23, column=k).value = np.average(
-                    abs(error[(~test_data[i]) & self.LENGTH]))
-                output_ws.cell(row=(
-                    i * table_size) + 24, column=k).value = np.average(abs(error[(~test_data[i])]))
-                k = k + 1
-            output_wb.save(output_file)
-        output_wb.save(output_file)
-        print(' [**] Finish Spetial Test...')
-
-    # -------------------------------------------------------------------------------------
-    '''test all methods'''
-    # -------------------------------------------------------------------------------------
-
+    # test all methods
     def test(self):
         print(' [**] Begin predict input data...')
         table_size = 26
@@ -284,7 +203,7 @@ class measureMining:
         # read test data
         test_data = []
         for i in range(0, 5):
-            flag = np.zeros((self.data.measure_num, 1), dtype=bool)
+            flag = numpy.zeros((self.data.measure_num, 1), dtype=bool)
             for j in range(0, self.data.measure_num):
                 flag[j, 0] = input_ws.cell(row=2 + j, column=2 + i).value
             test_data.append(flag)
@@ -306,11 +225,11 @@ class measureMining:
             for m in range(0, len(self.impute_method)):
                 output_ws.cell(row=(i * table_size) + 2,
                                column=k).value = self.impute_name[m]
-                error = np.zeros((self.data.measure_num, 1))
+                error = numpy.zeros((self.data.measure_num, 1))
                 for j in range(0, self.test_size):
                     print('Experiment %d, ' %
                           i, self.impute_name[m], ' sample: ', j)
-                    input = np.array(self.data.t_measures[:, j]).reshape(
+                    input = numpy.array(self.data.t_measures[:, j]).reshape(
                         self.data.measure_num, 1)
                     output = self.Imputate(
                         test_data[i], input, False, self.impute_method[m])
@@ -320,20 +239,20 @@ class measureMining:
                 for j in range(0, self.data.measure_num):
                     output_ws.cell(row=(i * table_size) + 3 + j,
                                    column=k).value = error[j, 0]
-                output_ws.cell(row=(i * table_size) + 22, column=k).value = np.average(
+                output_ws.cell(row=(i * table_size) + 22, column=k).value = numpy.average(
                     abs(error[(~test_data[i]) & self.GIRTH]))
-                output_ws.cell(row=(i * table_size) + 23, column=k).value = np.average(
+                output_ws.cell(row=(i * table_size) + 23, column=k).value = numpy.average(
                     abs(error[(~test_data[i]) & self.LENGTH]))
                 output_ws.cell(row=(
-                    i * table_size) + 24, column=k).value = np.average(abs(error[(~test_data[i])]))
+                    i * table_size) + 24, column=k).value = numpy.average(abs(error[(~test_data[i])]))
                 k = k + 1
 
             # test for simple weighted without classification
             output_ws.cell(row=(i * table_size) + 2,
                            column=k).value = 'simple weighted'
-            error = np.zeros((self.data.measure_num, 1))
+            error = numpy.zeros((self.data.measure_num, 1))
             for j in range(0, self.test_size):
-                input = np.array(self.data.t_measures[:, j]).reshape(
+                input = numpy.array(self.data.t_measures[:, j]).reshape(
                     self.data.measure_num, 1)
                 output = self.simpleAverage(test_data[i], input, False)
                 error += abs(output - input)
@@ -342,20 +261,20 @@ class measureMining:
             for j in range(0, self.data.measure_num):
                 output_ws.cell(row=(i * table_size) + 3 + j,
                                column=k).value = error[j, 0]
-            output_ws.cell(row=(i * table_size) + 22, column=k).value = np.average(
+            output_ws.cell(row=(i * table_size) + 22, column=k).value = numpy.average(
                 abs(error[(~test_data[i]) & self.GIRTH]))
-            output_ws.cell(row=(i * table_size) + 23, column=k).value = np.average(
+            output_ws.cell(row=(i * table_size) + 23, column=k).value = numpy.average(
                 abs(error[(~test_data[i]) & self.LENGTH]))
             output_ws.cell(row=(i * table_size) + 24,
-                           column=k).value = np.average(abs(error[(~test_data[i])]))
+                           column=k).value = numpy.average(abs(error[(~test_data[i])]))
             k += 1
 
             # test for case amplication(2.5) without classification
             output_ws.cell(row=(i * table_size) + 2,
                            column=k).value = 'case amplication'
-            error = np.zeros((self.data.measure_num, 1))
+            error = numpy.zeros((self.data.measure_num, 1))
             for j in range(0, self.test_size):
-                input = np.array(self.data.t_measures[:, j]).reshape(
+                input = numpy.array(self.data.t_measures[:, j]).reshape(
                     self.data.measure_num, 1)
                 output = self.caseAmplify(test_data[i], input, False)
                 error += abs(output - input)
@@ -364,12 +283,12 @@ class measureMining:
             for j in range(0, self.data.measure_num):
                 output_ws.cell(row=(i * table_size) + 3 + j,
                                column=k).value = error[j, 0]
-            output_ws.cell(row=(i * table_size) + 22, column=k).value = np.average(
+            output_ws.cell(row=(i * table_size) + 22, column=k).value = numpy.average(
                 abs(error[(~test_data[i]) & self.GIRTH]))
-            output_ws.cell(row=(i * table_size) + 23, column=k).value = np.average(
+            output_ws.cell(row=(i * table_size) + 23, column=k).value = numpy.average(
                 abs(error[(~test_data[i]) & self.LENGTH]))
             output_ws.cell(row=(i * table_size) + 24,
-                           column=k).value = np.average(abs(error[(~test_data[i])]))
+                           column=k).value = numpy.average(abs(error[(~test_data[i])]))
             k = k + 1
 
             output_wb.save(output_file)
@@ -377,9 +296,13 @@ class measureMining:
         print(' [**] Finish predict input data...')
 
 
-###############################################################################
-###############################################################################
+# test for this module
 if __name__ == "__main__":
-    data = rawData("../parameter.json")
-    miner = measureMining(data)
-    miner.test()
+    male = rawData("../parameter.json", 1)
+    female = rawData("../parameter.json", 2)
+
+    male_miner = Miner(male)
+    # male_miner.test()
+
+    # female_miner = Miner(female)
+    # female_miner.test()

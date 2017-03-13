@@ -1,23 +1,19 @@
 #!/usr/bin/python
 # coding=utf-8
 
-import sys
-sys.path.append("..")
-from dataProcess.rawData import *
+from meta import *
 import numpy.matlib
 import scipy.sparse.linalg
 import scipy.sparse
 
 
-class basisData:
-    '''
-        A basisData contains data of deform-based
-        v_basis, v_sigma, v_pca_mean, v_pca_std, v_coeff
-        v-synthesize
-        d_inv_mean, deform(o, t, std, mean)
-        d_basis, d_sigma, d_pca_mean, d_pca_std, d_coeff
-        A, LU for transfer deform to vertex
-    '''
+# A basisData contains data of deform-based
+# v_basis, v_sigma, v_pca_mean, v_pca_std, v_coeff
+# v-synthesize
+# d_inv_mean, deform(o, t, std, mean)
+# d_basis, d_sigma, d_pca_mean, d_pca_std, d_coeff
+# A, LU for transfer deform to vertex
+class Reshaper:
     __metaclass__ = Singleton
 
     def __init__(self, data):
@@ -34,10 +30,7 @@ class basisData:
             self.get_deform_basis()
         [self.A, self.lu] = self.load_d2v_matrix()
 
-    # -------------------------------------------------------
-    '''calculating vertex-based presentation(PCA)'''
-    # -------------------------------------------------------
-
+    # calculating vertex-based presentation(PCA)
     def get_vertex_basis(self):
         print(" [**] begin get_vertex_basis ...")
         v_basis_file = self.basisDataPath + 'v_basis.npy'
@@ -68,10 +61,7 @@ class basisData:
                   (time.time() - start))
             return self.data.load_NPY([v_basis_file, v_sigma_file, v_pca_mean_file, v_pca_std_file, v_coeff_file])
 
-    # --------------------------------------------------------------------------------------------------
-    '''synthesize a body by vertex-based, given coeff of pca basis before trunck '''
-    # --------------------------------------------------------------------------------------------------
-
+    # synthesize a body by vertex-based, given coeff of pca basis before trunck 
     def v_synthesize(self, weight):
         # start = time.time()
         basis = np.array(self.v_basis[::, :self.v_basis_num]).reshape(
@@ -89,10 +79,7 @@ class basisData:
         # s'%(time.time()-start)
         return [vertex, -self.data.o_normals, self.data.o_faces - 1]
 
-    # -------------------------------------------------------
-    '''loading deform-based data'''
-    # -------------------------------------------------------
-
+    # loading deform-based data
     def load_deform_data(self):
         print(" [**] begin load_deform_data ...")
         d_inv_mean_file = self.basisDataPath + 'd_inv_mean.npy'
@@ -135,10 +122,7 @@ class basisData:
                   (time.time() - start))
             return self.data.load_NPY([d_inv_mean_file, t_deform_file, o_deform_file, mean_deform_file, std_deform_file])
 
-    # ----------------------------------------------------------
-    '''calculating the inverse of mean vertex matrix, v^-1 '''
-    # ----------------------------------------------------------
-
+    # calculating the inverse of mean vertex matrix, v^-1 
     def get_inv_mean(self):
         print(" [**] begin get_inv_mean ...")
         start = time.time()
@@ -153,10 +137,7 @@ class basisData:
         print(' [**] finish get_inv_mean in %fs' % (time.time() - start))
         return d_inv_mean
 
-    # -------------------------------------------------------------------------
-    '''import the 4th point of the triangle, and calculate the deformation '''
-    # -------------------------------------------------------------------------
-
+    # import the 4th point of the triangle, and calculate the deformation 
     def assemble_face(self, v1, v2, v3):
         v21 = np.array((v2 - v1))
         v31 = np.array((v3 - v1))
@@ -164,10 +145,7 @@ class basisData:
         v41 /= np.sqrt(np.linalg.norm(v41))
         return np.column_stack((v21, np.column_stack((v31, v41))))
 
-    # -------------------------------------------------------
-    '''calculating deform-based presentation(PCA)'''
-    # -------------------------------------------------------
-
+    # calculating deform-based presentation(PCA)
     def get_deform_basis(self):
         print(" [**] begin get_deform_basis ...")
         d_coeff_file = self.basisDataPath + 'd_coeff.npy'
@@ -197,18 +175,12 @@ class basisData:
                   (time.time() - start))
             return self.data.load_NPY([d_basis_file, d_sigma_file, d_pca_mean_file, d_pca_std_file, d_coeff_file])
 
-    # --------------------------------------------------------------------------
-    '''construct the matrix = v_mean_inv.dot(the matrix consists of 0 -1...) '''
-    # --------------------------------------------------------------------------
-
+    # construct the matrix = v_mean_inv.dot(the matrix consists of 0 -1...) 
     def construct_coeff_mat(self, mat):
         tmp = -mat.sum(0)
         return np.row_stack((tmp, mat)).transpose()
 
-    # ----------------------------------------------------------------------------------------
-    '''cosntruct the related matrix A to change deformation into vertex using global method'''
-    # ----------------------------------------------------------------------------------------
-
+    # cosntruct the related matrix A to change deformation into vertex using global method
     def load_d2v_matrix(self):
         print(' [**] begin reload A&lu maxtrix')
         start = time.time()
@@ -263,10 +235,7 @@ class basisData:
         print(' [**] finish load A&lu matrix in %fs.' % (time.time() - start))
         return [A, lu]
 
-    # --------------------------------------------------------------------------------
-    '''synthesize a body by transformation-based, given deformation, output vertex '''
-    # -------------------------------------------------------------------------------
-
+    # synthesize a body by deform-based, given deformation, output vertex
     def d_synthesize(self, deformation):
         # tmp = np.array([[0.0], [0.0], [0.0]])
         # deformation = np.row_stack((deformation, tmp))
@@ -284,10 +253,7 @@ class basisData:
         #---------------
         return [x.reshape(x.size, 1), -self.data.o_normals, self.data.o_faces - 1]
 
-    # -------------------------------------------------------------------------
-    '''calculate the corresponding deformation from the input vertex'''
-    # -------------------------------------------------------------------------
-
+    # calculate the corresponding deformation from the input vertex
     def getDeform(self, vertex):
         deform = np.matlib.zeros((9 * self.data.face_num, 1))
         for i in range(0, self.data.face_num):
@@ -301,8 +267,7 @@ class basisData:
         return deform
 
 
-#######################################################################
-#######################################################################
+# test for this module
 if __name__ == "__main__":
     filename = "../parameter.json"
     data = rawData(filename)
