@@ -27,8 +27,6 @@ class Miner:
         self.data_path = self.paras['data_path'] + "miner/"
         self.ans_path = self.data.ans_path
         self.m2m = list(self.paras['m2m'])
-        [self.m_basis, self.m_coeff, self.m_pca_mean, self.m_pca_std] = \
-            self.get_m_basis()
         self.cfTable = self.itemCF()
 
         self.impute_name = ["SimpleFill", "SimpleAverage",
@@ -43,35 +41,6 @@ class Miner:
         else:
             solver = MICE()
             return self.imputate(flag, data, solver)
-
-    # calculating measure-based presentation(PCA)
-    def get_m_basis(self):
-        print(" [**] begin get_measure_basis ...")
-        m_basis_file = self.data_path + 'm_basis_0%d.npy' % self.flag_
-        m_coeff_file = self.data_path + 'm_coeff_0%d.npy' % self.flag_
-        m_pca_mean_file = self.data_path + 'm_pca_mean_0%d.npy' % self.flag_
-        m_pca_std_file = self.data_path + 'm_pca_std_0%d.npy' % self.flag_
-        start = time.time()
-        if self.data.paras["reload_m_basis"]:
-            # principle component analysis
-            m_basis, sigma, M = numpy.linalg.svd(
-                self.data.t_measure, full_matrices=0)
-            m_coeff = numpy.dot(m_basis.transpose(), self.data.t_measure)
-            m_pca_mean = numpy.array(numpy.mean(m_coeff, axis=1))
-            m_pca_mean.shape = (m_pca_mean.size, 1)
-            m_pca_std = numpy.array(numpy.std(m_coeff, axis=1))
-            m_pca_std.shape = (m_pca_std.size, 1)
-            numpy.save(open(m_basis_file, "wb"), m_basis)
-            numpy.save(open(m_coeff_file, "wb"), m_coeff)
-            numpy.save(open(m_pca_mean_file, "wb"), m_pca_mean)
-            numpy.save(open(m_pca_std_file, "wb"), m_pca_std)
-        else:
-            m_basis = numpy.load(open(m_basis_file, "rb"))
-            m_coeff = numpy.load(open(m_coeff_file, "rb"))
-            m_pca_mean = numpy.load(open(m_pca_mean_file, "rb"))
-            m_pca_std = numpy.load(open(m_pca_std_file, "rb"))
-        print(' [**] finish get_m_basis in %fs' % (time.time() - start))
-        return [m_basis, m_coeff, m_pca_mean, m_pca_std]
 
     # cal the similarity between measure, using Pearson Correlation(300-1531)
     def itemCF(self):

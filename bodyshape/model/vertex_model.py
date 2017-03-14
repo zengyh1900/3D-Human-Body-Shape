@@ -12,6 +12,7 @@ class VertexModel:
         self.TYPE = "vertex-model"
         self.body = [male, female]
         self.current_body = self.body[0]
+        self.paras = self.current_body.paras
 
         self.v_basis_num = self.current_body.paras["v_basis_num"]
         self.ans_path = self.current_body.ans_path + "vertex_model/"
@@ -32,16 +33,16 @@ class VertexModel:
                 for sign in [-1, +1]:
                     alpha = numpy.zeros((self.v_basis_num, 1))
                     alpha[j] = 3 * sign
-                    [v, n, f] = self.current_body.v_synthesize(alpha)
-                    fname = names[i] + ('0%d_PC%d_%dsigma.obj' %
-                                        (self.current_body.flag_, j, 3 * sign))
+                    [v, n, f] = self.mapping(alpha)
+                    fname = names[i] + ('PC%d_%dsigma.obj' % (j, 3 * sign))
                     self.current_body.save_obj(fname, v, f + 1)
         print(' [**] finish show pca of vertex in %fs' % (time.time() - start))
 
     # given coeff of pca_vertex_basis, return body shape
     def mapping(self, coeff):
-        coeff = numpy.array(coeff[:self.demo_num, :]).reshape(self.demo_num, 1)
-        coeff *= self.current_body.v_pca_std[:self.demo_num, :]
-        coeff += self.current_body.v_pca_mean[:self.demo_num, :]
+        coeff = numpy.array(coeff[:self.demo_num, :])
+        coeff.shape = (self.demo_num, 1)
+        coeff *= self.current_body.v_pca_std
+        coeff += self.current_body.v_pca_mean
         [v, n, f] = self.current_body.v_synthesize(coeff)
         return [v, n, f]

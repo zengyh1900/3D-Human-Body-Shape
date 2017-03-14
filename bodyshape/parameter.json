@@ -13,13 +13,14 @@
   "reload_cp": false,
   "reload_mask": false,
   "reload_m_data": false,
-  "reload_m_basis": false,
-  "reload_cfTable": false,
   "reload_d_data": false,
 
-  "reload_v_basis": true,
-  "reload_d_basis": true,
-  "reload_A": true,
+  "reload_cfTable": false,
+
+  "reload_v_basis": false,
+  "reload_d_basis": false,
+  "reload_m_basis": true,
+  "reload_A": false,
 
   "reload_L": true,
   "reload_M_mapping": true,
