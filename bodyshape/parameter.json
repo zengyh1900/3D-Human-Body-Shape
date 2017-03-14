@@ -17,13 +17,13 @@
 
   "reload_cfTable": false,
 
+  "reload_d2v": false,
   "reload_v_basis": false,
   "reload_d_basis": false,
   "reload_m_basis": true,
-  "reload_A": false,
 
+  "reload_m2v": true,
   "reload_L": true,
-  "reload_M_mapping": true,
   "reload_v_mapping": true,
   "reload_D": true,
 

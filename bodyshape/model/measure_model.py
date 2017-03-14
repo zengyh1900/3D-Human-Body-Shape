@@ -15,13 +15,15 @@ class MeasureModel:
     def __init__(self, male, female):
         self.TYPE = "measure-model"
         self.body = [male, female]
-        self.M = self.M2V()
         self.current_body = self.body[0]
+        self.paras = self.current_body.paras
 
-        self.m_basis_num = self.current_body.paras["m_basis_num"]
+        self.demo_num = self.current_body.m_basis_num
         self.ans_path = self.current_body.ans_path + "measure_model/"
-        self.demo_num = self.m_basis_num
+        self.data_path = self.paras["data_path"]
         self.deformation = None
+
+        self.m_ = self.M2V()
 
     # set current body
     def set_body(self, flag):
@@ -31,27 +33,25 @@ class MeasureModel:
     def M2V(self):
         print(' [**] begin load M2V matrix ... ')
         start = time.time()
-        M = []
-        if self.current_body.paras["reload_M_mapping"]:
-            for body in self.body:
-                W = self.
-                W = W.transpose().reshape((W.size, 1))
-                M = np.array(self.pca.m_coeff[:self.m_basis_num, ::]).reshape(
-                    self.m_basis_num, self.data.body_count)
-                M = self.data.build_equation(M, self.data.v_basis_num)
+        m2v = []
+        names = [self.data_path + "M2V_01.npy", self.data_path + "M2V_02.npy"]
+        if self.current_body.paras["reload_M"]:
+            for i, body in enumerate(self.body):
+                V = numpy.array(body.v_coeff.transpose().copy())
+                V.shape = (body.v_coeff.size, 1)
+                M = body.build_equation(body.m_coeff, body.v_basis_num)
                 # solve transform matrix
                 MtM = M.transpose().dot(M)
-                MtW = M.transpose().dot(W)
-                ANS = np.array(scipy.sparse.linalg.spsolve(MtM, MtW))
-                ANS.shape = ((self.data.v_basis_num, self.m_basis_num))
-                np.save(open(self.data.NPYpath + 'M.npy', 'wb'), ANS)
-            print(' [**] finish load_global_matrix between measures & vertex-based in %fs' %
-                  (time.time() - start))
-            return ANS
+                MtV = M.transpose().dot(V)
+                ans = numpy.array(scipy.sparse.linalg.spsolve(MtM, MtV))
+                ans.shape = (body.v_basis_num, body.m_basis_num)
+                m2v.append(ans)
+                numpy.save(open(names[i], "wb"), ans)
         else:
-
+            for fname in names:
+                m2v.append(numpy.load(open(fname, "rb")))
         print("  finish load M2V matrix in %fs" % (time.time() - start))
-        return M
+        return m2v
 
     # show all pca of vertex-based space
     def show_m_pca(self):
@@ -60,9 +60,9 @@ class MeasureModel:
         names = [self.ans_path + "01/", self.ans_path + "02/"]
         for i in range(0, 2):
             self.set_body(i + 1)
-            for j in range(0, self.m_basis_num):
+            for j in range(0, self.demo_num):
                 for sign in [-1, +1]:
-                    alpha = numpy.zeros((self.m_basis_num, 1))
+                    alpha = numpy.zeros((self.demo_num, 1))
                     alpha[j] = 3 * sign
                     [v, n, f] = self.mapping(alpha)
                     fname = names[i] + ('PC%d_%dsigma.obj' % (j, 3 * sign))
@@ -75,6 +75,7 @@ class MeasureModel:
         coeff.shape = (self.demo_num, 1)
         coeff *= self.current_body.m_pca_std
         coeff += self.current_body.m_pca_mean
-        coeff = self.M.dot()
+        m2v = self.m_[self.current_body.flag_ - 1]
+        coeff = m2v.dot(coeff)
         [v, n, f] = self.current_body.v_synthesize(coeff)
         return [v, n, f]

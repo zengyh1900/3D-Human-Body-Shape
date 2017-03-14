@@ -6,6 +6,7 @@ from myutils.miner import *
 from myutils.reshaper import *
 from model.vertex_model import *
 from model.measure_model import *
+from model.deform_model import *
 
 
 paras = "parameter.json"
@@ -45,17 +46,16 @@ def test_measure_model():
     male_body = Reshaper(male)
     female_body = Reshaper(female)
     model = MeasureModel(male_body, female_body)
-    model.show_v_pca()
+    model.show_m_pca()
+
+
+# test for deform_Model
+def test_deform_model():
+    male_body = Reshaper(male)
+    female_body = Reshaper(female)
+    model = DeformModel(male_body, female_body)
+    model.show_d_pca()
 
 
 if __name__ == "__main__":
-    test_measure_model()
-
-    # a = numpy.array([i for i in range(0, 24)]).reshape(2, 3, 4)
-    # print(a)
-    # a.shape = (2, 12)
-    # a = a.transpose()
-    # print(a)
-    # a = a.transpose()
-    # a.shape = (2, 3, 4)
-    # print(a)
+    test_deform_model()

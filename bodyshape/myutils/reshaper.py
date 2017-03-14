@@ -47,7 +47,7 @@ class Reshaper:
             self.get_d_basis()
         [self.m_basis, self.m_coeff, self.m_pca_mean, self.m_pca_std] = \
             self.get_m_basis()
-        # [self.A, self.lu] = self.load_d2v_matrix()
+        [self.A, self.lu] = self.load_d2v_matrix()
 
     # calculating vertex-based presentation(PCA)
     def get_v_basis(self):
@@ -129,7 +129,8 @@ class Reshaper:
     def load_d2v_matrix(self):
         print(' [**] begin reload A&lu maxtrix')
         start = time.time()
-        if self.paras['reload_A']:
+        A_file = self.data_path + "A_0%d" % self.flag_
+        if self.paras['reload_d2v']:
             data = []
             rowidx = []
             colidx = []
@@ -137,7 +138,6 @@ class Reshaper:
             off = self.v_num * 3
             shape = (self.f_num * 9, (self.v_num + self.f_num) * 3)
             for i in range(0, self.f_num):
-                print(i)
                 coeff = self.construct_coeff_mat(self.d_inv_mean[i])
                 v = [c - 1 for c in self.facet[i, :]]
                 v1 = range(v[0] * 3, v[0] * 3 + 3)
@@ -152,11 +152,11 @@ class Reshaper:
                                v2[j], v3[j], v4[j], v1[j], v2[j], v3[j], v4[j]]
                     r += 3
             A = scipy.sparse.coo_matrix((data, (rowidx, colidx)), shape=shape)
-            numpy.savez(self.data_path + "A", row=A.row,
-                        col=A.col, data=A.data, shape=A.shape)
+            numpy.savez(A_file, row=A.row, col=A.col,
+                        data=A.data, shape=A.shape)
             print('finised A')
         else:
-            loader = numpy.load(self.numpy.path + "A.numpy.")
+            loader = numpy.load(A_file + ".npz")
             A = scipy.sparse.coo_matrix(
                 (loader['data'], (loader['row'], loader['col'])),
                 shape=loader['shape'])

@@ -8,34 +8,42 @@ import time
 # a DeformModel show the PCA space of deform
 class DeformModel:
 
-    def __init__(self, data):
+    def __init__(self, male, female):
         self.TYPE = "deform-model"
-        self.data = data
-        self.d_basis_num = self.data.paras["d_basis_num"]
-        self.demo_num = self.d_basis_num
+        self.body = [male, female]
+        self.current_body = self.body[0]
+        self.paras = self.current_body.paras
+
+        self.demo_num = self.current_body.d_basis_num
+        self.ans_path = self.current_body.ans_path + "deform_model/"
         self.deformation = None
 
-    # show deformation-based synthesize(PCA)
+    def set_body(self, flag):
+        self.current_body = self.body[flag - 1]
+
+    # show all pca of deform-based space
     def show_d_pca(self):
-        print(" [**] begin show deformation's PCA ...")
+        print(" [**] begin show deform's PCA ...")
         start = time.time()
-        for id in range(0, self.d_basis_num):
-            for sign in [-1, +1]:
-                alpha = numpy.zeros((self.d_basis_num, 1))
-                alpha[id] = 3 * sign
-                [vertex, n, f] = self.mapping(alpha)
-                fname = self.data.ans_path + \
-                    ('0%d_PC%d_%dsigma.obj' % (self.data.flag_, id, 3 * sign))
-                self.data.save_obj(fname, vertex, self.data.o_faces)
+        names = [self.ans_path + "01/", self.ans_path + "02/"]
+        for i in range(0, 2):
+            self.set_body(i + 1)
+            for j in range(0, self.demo_num):
+                for sign in [-1, +1]:
+                    alpha = numpy.zeros((self.demo_num, 1))
+                    alpha[j] = 3 * sign
+                    [v, n, f] = self.mapping(alpha)
+                    fname = names[i] + ('PC%d_%dsigma.obj' % (j, 3 * sign))
+                    self.current_body.save_obj(fname, v, f + 1)
         print(' [**] finish show pca of deform in %fs' % (time.time() - start))
 
-    # given coeff of pca deform_basis, return body shape
-    def mapping(self, weight):
-        weight = numpy.array(weight[:self.demo_num, :]).reshape(self.demo_num, 1)
-        weight = weight * self.data.d_pca_std[:self.demo_num, :]
-        weight += self.data.d_pca_mean[:self.demo_num, :]
-        basis = self.data.d_basis[:, :self.d_basis_num]
-        deformation = numpy.matmul(basis, weight) * self.data.std_deform
-        deformation += self.data.mean_deform
-        [v, n, f] = self.data.d_synthesize(deformation)
+    # given coeff of pca_deform_basis, return body shape
+    def mapping(self, coeff):
+        coeff = numpy.array(coeff[:self.demo_num, :])
+        coeff.shape = (self.demo_num, 1)
+        coeff *= self.current_body.d_pca_std
+        coeff += self.current_body.d_pca_mean
+        basis = self.current_body.d_basis[:, :self.demo_num]
+        d = numpy.matmul(basis, coeff)
+        [v, n, f] = self.current_body.d_synthesize(d)
         return [v, n, f]
