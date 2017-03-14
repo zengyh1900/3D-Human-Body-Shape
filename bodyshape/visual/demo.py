@@ -1,14 +1,9 @@
 #!/usr/bin/python
 # coding=utf-8
 
-from Visual.myWidget import *
-from Visual.mayaWidget import *
 
-
+# usage: GUI for showing all models
 class HumanShapeAnalysisDemo(QtGui.QMainWindow):
-    '''
-        usage: GUI for showing all models
-    '''
 
     def __init__(self, file):
         QtGui.QMainWindow.__init__(self)
@@ -203,10 +198,14 @@ class HumanShapeAnalysisDemo(QtGui.QMainWindow):
 #####################################################################
 #####################################################################
 if __name__ == '__main__':
-    mouse = [0, 0, -1, -1]
-    app = QtGui.QApplication(sys.argv)
     file = "parameter.json"
+    # mouse = [0, 0, -1, -1]
+    # app = QtGui.QApplication(sys.argv)
 
-    win = HumanShapeAnalysisDemo(file)
-    win.show()
-    sys.exit(app.exec_())
+    # win = HumanShapeAnalysisDemo(file)
+    # win.show()
+    # sys.exit(app.exec_())
+
+    with open(filename, 'r') as f:
+        paras = json.load(f)
+    print(paras["part"])

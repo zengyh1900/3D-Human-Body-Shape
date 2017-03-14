@@ -26,6 +26,7 @@ class Singleton(type):
 #     normals, file_list, faces, vertex(o, t, mean, std)
 #     measure(o, t, mean, std), control point
 class MetaData:
+
     def __init__(self, filename, flag):
         with open(filename, 'r') as f:
             self.paras = json.load(f)
@@ -37,20 +38,23 @@ class MetaData:
         self.m_num = self.paras['m_num']
         self.v_num = self.paras['v_num']
         self.f_num = self.paras['f_num']
+        self.p_num = self.paras['p_num']
 
         # load all data
         self.cp = self.load_cp()
         [self.facet, self.normals] = self.load_template()
         [self.file_list, self.vertex, self.mean_vertex,
             self.std_vertex] = self.obj2data()
+        self.body_num = len(self.file_list)
+        [self.d_inv_mean, self.deform] = self.load_d_data()
         [self.measure, self.mean_measure, self.std_measure,
             self.t_measure] = self.load_measure()
-        self.body_num = len(self.file_list)
+        [self.part, self.mask] = self.getMap()
 
     # load normal data and facet information for female and male
     def load_template(self):
         normals = numpy.load(open(self.data_path + 'Normals.npy', 'rb'))
-        facet = numpy.zeros((self.f_num, 3))
+        facet = numpy.zeros((self.f_num, 3), dtype=int)
         f = open(self.data_path + 'template.txt', 'r')
         i = 0
         for line in f:
@@ -187,6 +191,90 @@ class MetaData:
             measure_list.append(length * 1000)
         return numpy.array(measure_list).reshape(self.m_num, 1)
 
+    # get color dict & mask
+    def getMap(self):
+        tmp = self.paras["part"]
+        p2m = self.paras["p2m"]
+        part = []
+        for i in range(0, len(tmp)):
+            part.append((tmp[i][0], tmp[i][1], tmp[i][2]))
+        mask_file = self.data_path + "mask_0%d" % self.flag_
+        if self.paras["reload_mask"]:
+            tmp = open(self.data_path + 'body_part.obj', 'r').read()
+            tmp = tmp[tmp.index('\nv'): tmp.index("\n#!") - 1].replace('v', '')
+            tmp = list(map(float, tmp.replace('\n', ' ').split()))
+            body = numpy.array(tmp).reshape(self.v_num, 6)
+            body = numpy.array(body[:, 3:])
+            color_list = []
+            for i in range(0, self.v_num):
+                color_list.append((body[i, 0], body[i, 1], body[i, 2]))
+            mask = numpy.zeros((19, self.f_num), dtype=bool)
+            for i in range(0, self.f_num):
+                print('  processing facet %d ...' % i)
+                v = self.facet[i, :] - 1
+                tmp = set()
+                for j in v:
+                    c = part.index(color_list[j])
+                    for k in p2m[c]:
+                        tmp.add(k)
+                for j in tmp:
+                    mask[j, i] = 1
+            numpy.save(open(mask_file, "wb"), mask)
+        else:
+            mask = numpy.load(open(mask_file, "rb"))
+        return [part, mask]
+
+    # loading deform-based data
+    def load_d_data(self):
+        print(" [**] begin load_d_data ...")
+        d_inv_mean_file = self.data_path + 'd_inv_mean_0%d.numpy.' % self.flag_
+        deform_file = self.data_path + 'deform_0%d.numpy.' % self.flag_
+        start = time.time()
+        if self.paras['reload_d_data']:
+            d_inv_mean = self.get_inv_mean()
+            deform = numpy.zeros((self.body_num, self.f_num, 9))
+            # calculate deformation mat of each body shape
+            for i in range(0, self.f_num):
+                print('loading deformation of each body: NO. ', i)
+                v = [k - 1 for k in self.facet[i, :]]
+                for j in range(0, self.body_num):
+                    v1 = self.vertex[j, v[0], :]
+                    v2 = self.vertex[j, v[1], :]
+                    v3 = self.vertex[j, v[2], :]
+                    Q = self.assemble_face(v1, v2, v3).dot(d_inv_mean[i])
+                    Q.shape = (9, 1)
+                    deform[j, i, :] = Q.flat
+            numpy.save(open(d_inv_mean_file, "wb"), d_inv_mean)
+            numpy.save(open(deform_file, "wb"), deform)
+        else:
+            d_inv_mean = numpy.load(open(d_inv_mean_file, "rb"))
+            deform = numpy.load(open(deform_file, "rb"))
+        print(' [**] finish load_d_data in %fs' % (time.time() - start))
+        return[d_inv_mean, deform]
+
+    # calculating the inverse of mean vertex matrix, v^-1
+    def get_inv_mean(self):
+        print(" [**] begin get_inv_mean ...")
+        start = time.time()
+        d_inv_mean = numpy.zeros((self.f_num, 3, 3))
+        for i in range(0, self.f_num):
+            v = [j - 1 for j in self.facet[i, :]]
+            v1 = self.mean_vertex[v[0], :]
+            v2 = self.mean_vertex[v[1], :]
+            v3 = self.mean_vertex[v[2], :]
+            d_inv_mean[i] = self.assemble_face(v1, v2, v3)
+            d_inv_mean[i] = numpy.linalg.inv(d_inv_mean[i])
+        print(' [**] finish get_inv_mean in %fs' % (time.time() - start))
+        return d_inv_mean
+
+    # import the 4th point of the triangle, and calculate the deformation
+    def assemble_face(self, v1, v2, v3):
+        v21 = numpy.array((v2 - v1))
+        v31 = numpy.array((v3 - v1))
+        v41 = numpy.cross(list(v21.flat), list(v31.flat))
+        v41 /= numpy.sqrt(numpy.linalg.norm(v41))
+        return numpy.column_stack((v21, numpy.column_stack((v31, v41))))
+
     # build sparse matrix
     def build_equation(self, m_datas, basis_num):
         shape = (m_datas.shape[1] * basis_num, m_datas.shape[0] * basis_num)
@@ -200,6 +288,18 @@ class MetaData:
                 colid += [a for a in range(j * m_datas.shape[0],
                                            (j + 1) * m_datas.shape[0])]
         return scipy.sparse.coo_matrix((data, (rowid, colid)), shape)
+
+    # calculate the corresponding deformation from the inumpy.t vertex
+    def get_deform(self, vertex):
+        deform = numpy.zeros((self.f_num, 9))
+        for i in range(0, self.f_num):
+            v = [k - 1 for k in self.facet[i, :]]
+            v1 = vertex[v[0], :]
+            v2 = vertex[v[1], :]
+            v3 = vertex[v[2], :]
+            Q = self.assemble_face(v1, v2, v3).dot(self.d_inv_mean[i])
+            deform[i, :] = Q.flat
+        return deform
 
     # save obj file
     def save_obj(self, filename, v, f):
@@ -235,12 +335,3 @@ class MetaData:
             normal = normalSum / float(len(normalList))
             normal /= numpy.linalg.norm(normal)
             self.normals.append(map(float, normal.tolist()))
-
-
-# test for this module
-if __name__ == "__main__":
-    filename = "../parameter.json"
-    male_flag = 1
-    female_flag = 2
-    male_body = MetaData(filename, male_flag)
-    female_body = MetaData(filename, female_flag)

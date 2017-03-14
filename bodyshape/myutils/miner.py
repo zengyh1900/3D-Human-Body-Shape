@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # coding=utf-8
 
-from meta import *
+from .miner import *
 from fancyimpute import *
 from openpyxl import Workbook
 from openpyxl import load_workbook
@@ -16,6 +16,7 @@ import math
 # output: all correlation between measures
 # usage:  impute the missing value in measure data
 class Miner:
+
     def __init__(self, data):
         # load all necessary data
         self.test_size = 300
