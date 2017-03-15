@@ -23,7 +23,7 @@ class MeasureModel:
         self.data_path = self.paras["data_path"]
         self.deformation = None
 
-        self.m_ = self.M2V()
+        self.basis_map = self.M2V()
 
     # set current body
     def set_body(self, flag):
@@ -33,25 +33,26 @@ class MeasureModel:
     def M2V(self):
         print(' [**] begin load M2V matrix ... ')
         start = time.time()
-        m2v = []
-        names = [self.data_path + "M2V_01.npy", self.data_path + "M2V_02.npy"]
+        basis_map = []
+        names = [self.data_path + "basis_map_01.npy",
+                 self.data_path + "basis_map_02.npy"]
         if self.current_body.paras["reload_M"]:
             for i, body in enumerate(self.body):
                 V = numpy.array(body.v_coeff.transpose().copy())
-                V.shape = (body.v_coeff.size, 1)
+                V.shape = (V.size, 1)
                 M = body.build_equation(body.m_coeff, body.v_basis_num)
                 # solve transform matrix
                 MtM = M.transpose().dot(M)
                 MtV = M.transpose().dot(V)
                 ans = numpy.array(scipy.sparse.linalg.spsolve(MtM, MtV))
                 ans.shape = (body.v_basis_num, body.m_basis_num)
-                m2v.append(ans)
+                basis_map.append(ans)
                 numpy.save(open(names[i], "wb"), ans)
         else:
             for fname in names:
-                m2v.append(numpy.load(open(fname, "rb")))
+                basis_map.append(numpy.load(open(fname, "rb")))
         print("  finish load M2V matrix in %fs" % (time.time() - start))
-        return m2v
+        return basis_map
 
     # show all pca of vertex-based space
     def show_m_pca(self):
@@ -75,7 +76,7 @@ class MeasureModel:
         coeff.shape = (self.demo_num, 1)
         coeff *= self.current_body.m_pca_std
         coeff += self.current_body.m_pca_mean
-        m2v = self.m_[self.current_body.flag_ - 1]
+        m2v = self.basis_map[self.current_body.flag_ - 1]
         coeff = m2v.dot(coeff)
         [v, n, f] = self.current_body.v_synthesize(coeff)
         return [v, n, f]

@@ -5,8 +5,10 @@ from openpyxl import Workbook
 import scipy.sparse.linalg
 import numpy
 
+
 # a model map measures to local face
 class DeformLocal:
+
     def __init__(self, data):
         self.TYPE = "deform-local"
         self.data = data
@@ -100,7 +102,7 @@ class DeformLocal:
         wb.save(self.data.ansPath + 'rebuild_d_local_v%d.xlsx' %
                 (self.data.paras['mapping_version']))
 
-    # given t_measures, return body shape 
+    # given t_measures, return body shape
     def mapping(self, data):
         data = np.array(data[:self.demo_num, :]).reshape(self.demo_num, 1)
         data = self.data.mean_measures + self.data.std_measures * data

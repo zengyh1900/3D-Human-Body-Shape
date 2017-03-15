@@ -110,11 +110,11 @@ class Reshaper:
         start = time.time()
         if self.data.paras["reload_m_basis"]:
             # principle component analysis
-            m_basis, g, M = numpy.linalg.svd(self.t_measure, full_matrices=0)
+            m_basis, g, M = numpy.linalg.svd(self.measure, full_matrices=0)
             numpy.save(open(m_basis_file, "wb"), m_basis)
         else:
             m_basis = numpy.load(open(m_basis_file, "rb"))
-        m_coeff = numpy.dot(m_basis.transpose(), self.t_measure)
+        m_coeff = numpy.dot(m_basis.transpose(), self.measure)
         m_coeff = numpy.array(m_coeff[:self.m_basis_num, :])
         m_coeff.shape = (self.m_basis_num, self.body_num)
         m_pca_mean = numpy.array(numpy.mean(m_coeff, axis=1))

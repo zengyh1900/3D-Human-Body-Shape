@@ -45,6 +45,19 @@ class VertexGlobal:
                 MtV = M.transpose().dot(V)
                 ans = numpy.array(scipy.sparse.linalg.spsolve(MtM, MtV))
                 ans.shape = (body.v_basis_num, body.m_num)
+                # ---------------------------------
+                print("t_measure shape: \n", body.t_measure.shape)
+                print("v_coeff shape: \n", body.v_coeff.shape)
+                input()
+                v = numpy.array(body.v_coeff[:, 0])
+                v.shape = (body.d_basis_num, 1)
+                m = numpy.array(body.t_measure[:, 0])
+                m.shape = (body.m_num, 1)
+                print(v.shape, m.shape, ans.shape)
+                print("before:\n", v)
+                print("after:\n", ans.dot(m))
+                input()
+                # ---------------------------------
                 m2v.append(ans)
                 numpy.save(open(names[i], "wb"), ans)
         else:
@@ -81,6 +94,7 @@ class VertexGlobal:
                 ans[:, j] = error.flat
                 for k in range(0, error.shape[0]):
                     ws.cell(row=j + 2, column=k + 2).value = error[k, 0]
+                print(error)
             std = numpy.std(ans, axis=1)
             mean = numpy.mean(abs(ans), axis=1)
             ws.cell(row=body.body_num + 2, column=1).value = "mean error"
@@ -91,10 +105,11 @@ class VertexGlobal:
             numpy.save(open(error_npy, "wb"), ans)
             wb.save(error_path)
 
-    # given t_measure, return body shape
+    # given measure, return body shape
     def mapping(self, weight):
         weight = numpy.array(weight[:self.demo_num, :])
         weight.shape = (self.demo_num, 1)
+
         m2v = self.m2v_[self.current_body.flag_ - 1]
         weight = m2v.dot(weight)
         [v, n, f] = self.current_body.v_synthesize(weight)

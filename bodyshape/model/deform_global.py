@@ -26,13 +26,16 @@ class DeformGlobal:
         self.deformation = None
         self.m2d_ = self.load_m2d()
 
+    def set_body(self, flag):
+        self.current_body = self.body[flag - 1]
+
     # calculate global mapping from measure to deformation PCA coeff
     def load_m2d(self):
         print(' [**] begin load_m2d ... ')
         start = time.time()
         m2d = []
         names = [self.data_path + "m2d_01.npy", self.data_path + "m2d_02.npy"]
-        if self.data.paras['reload_m2d']:
+        if self.paras['reload_m2d']:
             for i, body in enumerate(self.body):
                 D = body.d_coeff.transpose().copy()
                 D.shape = (D.size, 1)
@@ -43,7 +46,7 @@ class DeformGlobal:
                 ans = numpy.array(scipy.sparse.linalg.spsolve(MtM, MtD))
                 ans.shape = (body.d_basis_num, body.m_num)
                 m2d.append(ans)
-                numpy.save(open(names[i], "wb"))
+                numpy.save(open(names[i], "wb"), ans)
         else:
             for fname in names:
                 tmp = numpy.load(open(fname, "rb"))
@@ -64,7 +67,7 @@ class DeformGlobal:
             for j in range(0, body.m_num):
                 ws.cell(row=1, column=j + 2).value = body.measure_str[j]
             for j in range(0, body.body_num):
-                print('rebuilding vertex_global-based: %d  ...' % j)
+                print('rebuilding deform_global-based: %d  ...' % j)
                 ws.cell(row=j + 2, column=1).value = j
                 data = body.t_measure[:, j].reshape(body.m_num, 1)
                 [vertex, n, f] = self.mapping(data)
