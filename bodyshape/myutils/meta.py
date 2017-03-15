@@ -144,7 +144,7 @@ class MetaData:
             measure = numpy.zeros((self.m_num, len(self.file_list)))
             for i in range(0, len(self.file_list)):
                 print("  calc measure for %d of body %d" % (self.flag_, i))
-                measure[:, i] = self.calc_measures(self.vertex[i, :, :]).flat
+                measure[:, i] = self.calc_measure(self.vertex[i, :, :]).flat
             numpy.save(open(m_file, "wb"), measure)
         else:
             measure = numpy.load(open(m_file, "rb"))
@@ -157,7 +157,7 @@ class MetaData:
         return[measure, mean_measure, std_measure, t_measure]
 
     # calculate measure data from given vertex by control points
-    def calc_measures(self, vertex):
+    def calc_measure(self, vertex):
         measure_list = []
         # clac weight
         vol = 0.0

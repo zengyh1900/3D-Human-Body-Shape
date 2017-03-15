@@ -1,20 +1,12 @@
 #!/usr/bin/python
 # coding=utf-8
 
-import sys
-sys.path.append("..")
-from dataProcess.dataModel import *
 from openpyxl import Workbook
 import scipy.sparse.linalg
-import numpy as np
+import numpy
 
-
-class deformLocal:
-    '''
-        a model map measures to local face
-    '''
-    __metaclass__ = Singleton
-
+# a model map measures to local face
+class DeformLocal:
     def __init__(self, data):
         self.TYPE = "deform-local"
         self.data = data
@@ -22,10 +14,7 @@ class deformLocal:
         self.L_list = self.local_matrix()
         self.demo_num = self.data.measure_num
 
-    # --------------------------------------------------------------------------
-    '''local map matrix: measure->deform'''
-    # --------------------------------------------------------------------------
-
+    # local map matrix: measure->deform
     def local_matrix(self):
         print(' [**] begin solve local transformation')
         start = time.time()
@@ -77,10 +66,7 @@ class deformLocal:
                 L_list.append(np.array([c for c in tmp[i]]))
             return L_list
 
-    # ----------------------------------------------------------------
-    '''rebuild the female dataset using deform-based local method '''
-    # ----------------------------------------------------------------
-
+    # rebuild the female dataset using deform-based local method
     def local_rebuild(self):
         wb = Workbook()
         ws = wb.get_active_sheet()
@@ -114,10 +100,7 @@ class deformLocal:
         wb.save(self.data.ansPath + 'rebuild_d_local_v%d.xlsx' %
                 (self.data.paras['mapping_version']))
 
-    # ------------------------------------------------------------------------------------
-    '''given t_measures, return body shape '''
-    # ------------------------------------------------------------------------------------
-
+    # given t_measures, return body shape 
     def mapping(self, data):
         data = np.array(data[:self.demo_num, :]).reshape(self.demo_num, 1)
         data = self.data.mean_measures + self.data.std_measures * data
@@ -132,17 +115,3 @@ class deformLocal:
         deform = np.array(deform).reshape(len(deform), 1)
         self.deformation = deform
         return self.data.d_synthesize(deform)
-
-
-#############################################
-'''test'''
-#############################################
-if __name__ == "__main__":
-    filename = "../parameter.json"
-    data = rawData(filename)
-    bd = basisData(data)
-    mark = Masker(data)
-    model = dataModel(bd, mark)
-
-    dl = deformLocal(model)
-    dl.local_rebuild()

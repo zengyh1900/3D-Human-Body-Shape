@@ -1,115 +1,102 @@
 #!/usr/bin/python
 # coding=utf-8
 
-import sys
-sys.path.append("..")
-from dataProcess.rawData import *
-from dataProcess.dataModel import *
 from openpyxl import Workbook
-import numpy as np
-import scipy.sparse.linalg
-import scipy.sparse
-import scipy
+import numpy
 import time
+import scipy
 
 
-class vertexGlobal:
-    '''
-        a vertex-based global model, mainly for synthesis body from measure
-        input: body measures
-        usage: build a model in vertex-based pca space, mapping measures to this space
-        output: 3D human body shape
-    '''
+# a vertex-based global model, mainly for synthesis body from measure
+# input: body measures
+# usage: build a model in vertex-based pca space
+# mapping measures to this space
+# output: 3D human body shape
+class VertexGlobal:
 
-    def __init__(self, data):
-        self.type = "vertex-global"
-        self.data = data
+    def __init__(self, male, female):
+        self.TYPE = "vertex-global"
+        self.body = [male, female]
+        self.current_body = self.body[0]
+        self.paras = self.current_body.paras
+
+        self.demo_num = self.current_body.m_num
+        self.ans_path = self.current_body.ans_path + "vertex_global/"
+        self.data_path = self.paras["data_path"]
         self.deformation = None
-        self.V = self.load_global_matrix()
-        self.demo_num = self.data.measure_num
+        self.m2v_ = self.load_m2v()
 
-    # ----------------------------------------------------------------
-    '''calculate the mapping matrix from measures to vertex-based '''
-    # ----------------------------------------------------------------
+    def set_body(self, flag):
+        self.current_body = self.body[flag - 1]
 
-    def load_global_matrix(self):
-        print(' [**] begin load_global_matrix ... ')
+    # calculate the mapping matrix from measures to vertex-based
+    def load_m2v(self):
+        print(' [**] begin load_m2v ... ')
         start = time.time()
-        if self.data.paras["reload_v_mapping"]:
-            W = np.array(self.data.v_coeff[:self.data.v_basis_num, ::]).reshape(
-                self.data.v_basis_num, self.data.body_count)
-            W = W.transpose().reshape((W.size, 1))
-            M = self.data.build_equation(
-                self.data.t_measures, self.data.v_basis_num)
-            # solve transform matrix
-            MtM = M.transpose().dot(M)
-            MtW = M.transpose().dot(W)
-            V = np.array(scipy.sparse.linalg.spsolve(MtM, MtW))
-            V.shape = ((self.data.v_basis_num, self.data.measure_num))
-            np.save(open(self.data.NPYpath + 'V.npy', 'wb'), V)
-            print(' [**] finish load_global_matrix between measures & vertex-based in %fs' %
-                  (time.time() - start))
-            return V
+        m2v = []
+        names = [self.data_path + "m2v_01.npy", self.data_path + "m2v_02.npy"]
+        if self.paras["reload_m2v"]:
+            for i, body in enumerate(self.body):
+                V = body.v_coeff.transpose().copy()
+                V.shape = (V.size, 1)
+                M = body.build_equation(body.t_measure, body.v_basis_num)
+                # solve transform matrix
+                MtM = M.transpose().dot(M)
+                MtV = M.transpose().dot(V)
+                ans = numpy.array(scipy.sparse.linalg.spsolve(MtM, MtV))
+                ans.shape = (body.v_basis_num, body.m_num)
+                m2v.append(ans)
+                numpy.save(open(names[i], "wb"), ans)
         else:
-            print(' [**] finish load_global_matrix between measures & vertex-based in %fs' %
-                  (time.time() - start))
-            return np.load(open(self.data.NPYpath + 'V.npy', 'rb'))
+            for fname in names:
+                tmp = numpy.load(open(fname), "rb")
+                m2v.append(tmp)
+        print(' [**] finish load_m2v  in %fs' % (time.time() - start))
+        return m2v
 
-    # ----------------------------------------------------------------
-    '''rebuild the female dataset by vertex-global method '''
-    # ----------------------------------------------------------------
-
+    # rebuild the female dataset by vertex-global method
     def v_rebuild(self):
-        wb = Workbook()
-        ws = wb.get_active_sheet()
-        all = np.zeros((self.data.measure_num, self.data.body_count))
-        for i in range(0, self.data.measure_num):
-            ws.cell(row=1, column=i + 2).value = self.data.measure_str[i]
-        for i in range(0, self.data.body_count):
-            print('rebuilding vertex_global-based: %d  ...' % i)
-            ws.cell(row=i + 2, column=1).value = i
-            input = self.data.t_measures[
-                :, i].reshape(self.data.measure_num, 1)
-            [vertex, n, f] = self.mapping(input)
-            # self.data.save_obj(self.data.ansPath+self.data.o_file_list[i],vertex,f+1)
-            input = self.data.mean_measures + self.data.std_measures * input
-            output = np.array(self.data.calc_measures(vertex))
-            error = output - input
-            error[0, 0] = (output[0, 0]**3) / (1000**3) - \
-                (input[0, 0]**3) / (1000**3)
-            all[:, i] = error.flat
-            for j in range(0, error.shape[0]):
-                ws.cell(row=i + 2, column=j + 2).value = error[j, 0]
-        std = np.std(all, axis=1)
-        mean = np.mean(abs(all), axis=1)
-        ws.cell(row=self.data.body_count + 2, column=1).value = "mean error"
-        ws.cell(row=self.data.body_count + 3, column=1).value = "std"
-        for i in range(0, len(mean)):
-            ws.cell(row=self.data.body_count + 2, column=i + 2).value = mean[i]
-            ws.cell(row=self.data.body_count + 3, column=i + 2).value = std[i]
-        wb.save(self.data.ansPath + 'rebuild_v_global.xlsx')
+        names = [self.ans_path + "01/", self.ans_path + "02/"]
+        for i, body in enumerate(self.body):
+            self.set_body(i + 1)
+            error_path = self.ans_path + "v_global_0%d.xlsx" % (i + 1)
+            error_npy = self.ans_path + "error_0%d.npy" % (i + 1)
+            wb = Workbook()
+            ws = wb.get_active_sheet()
+            ans = numpy.zeros((body.m_num, body.body_num))
+            for j in range(0, body.m_num):
+                ws.cell(row=1, column=j + 2).value = body.measure_str[j]
+            for j in range(0, body.body_num):
+                print('rebuilding vertex_global-based: %d  ...' % j)
+                ws.cell(row=j + 2, column=1).value = j
+                data = body.t_measure[:, j].reshape(body.m_num, 1)
+                [vertex, n, f] = self.mapping(data)
+                body.save_obj(names[i] + body.file_list[j], vertex, f + 1)
 
-    # -----------------------------------------------------------------------------------
-    '''given t_measure, return body shape'''
-    # -----------------------------------------------------------------------------------
+                data = body.mean_measure + body.std_measure * data
+                output = numpy.array(body.calc_measure(vertex))
+                error = output - data
+                error[0, 0] = (output[0, 0]**3) / (1000**3) - \
+                    (data[0, 0]**3) / (1000**3)
+                ans[:, j] = error.flat
+                for k in range(0, error.shape[0]):
+                    ws.cell(row=j + 2, column=k + 2).value = error[k, 0]
+            std = numpy.std(ans, axis=1)
+            mean = numpy.mean(abs(ans), axis=1)
+            ws.cell(row=body.body_num + 2, column=1).value = "mean error"
+            ws.cell(row=body.body_num + 3, column=1).value = "std"
+            for j in range(0, len(mean)):
+                ws.cell(row=body.body_num + 2, column=j + 2).value = mean[j]
+                ws.cell(row=body.body_num + 3, column=j + 2).value = std[j]
+            numpy.save(open(error_npy, "wb"), ans)
+            wb.save(error_path)
 
-    def mapping(self, measure):
-        measure = np.array(measure[:self.demo_num, :]
-                           ).reshape(self.demo_num, 1)
-        weight = self.V.dot(measure)
-        [v, n, f] = self.data.v_synthesize(weight)
-        # self.deformation = self.data.getDeform(v)
+    # given t_measure, return body shape
+    def mapping(self, weight):
+        weight = numpy.array(weight[:self.demo_num, :])
+        weight.shape = (self.demo_num, 1)
+        m2v = self.m2v_[self.current_body.flag_ - 1]
+        weight = m2v.dot(weight)
+        [v, n, f] = self.current_body.v_synthesize(weight)
+        # self.deformation = self.current_body.getDeform(v)
         return [v, n, f]
-
-#############################################
-'''test'''
-#############################################
-if __name__ == "__main__":
-    filename = "../parameter.json"
-    data = rawData(filename)
-    bd = basisData(data)
-    mark = Masker(data)
-    model = dataModel(bd, mark)
-
-    vg = vertexGlobal(model)
-    vg.v_rebuild()

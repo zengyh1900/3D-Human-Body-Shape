@@ -22,10 +22,10 @@
   "reload_d_basis": false,
   "reload_m_basis": true,
 
-  "reload_m2v": true,
+  "reload_M": true,
   "reload_L": true,
-  "reload_v_mapping": true,
-  "reload_D": true,
+  "reload_m2v": true,
+  "reload_m2d": true,
 
   "measure_str":  ["weight", "height", "neck", "chest",
                    "belly_button_waist", "gluteal_hip",

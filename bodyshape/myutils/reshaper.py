@@ -37,8 +37,8 @@ class Reshaper:
         [self.measure, self.mean_measure, self.std_measure, self.t_measure] = \
             [data.measure, data.mean_measure, data.std_measure, data.t_measure]
 
-        [self.calc_measures, self.build_equation, self.get_deform] = \
-            [data.calc_measures, data.build_equation, data.get_deform]
+        [self.calc_measure, self.build_equation, self.get_deform] = \
+            [data.calc_measure, data.build_equation, data.get_deform]
         self.save_obj = data.save_obj
 
         [self.v_basis, self.v_coeff, self.v_pca_mean, self.v_pca_std] = \
@@ -47,7 +47,7 @@ class Reshaper:
             self.get_d_basis()
         [self.m_basis, self.m_coeff, self.m_pca_mean, self.m_pca_std] = \
             self.get_m_basis()
-        [self.A, self.lu] = self.load_d2v_matrix()
+        [self.d2v_, self.lu] = self.load_d2v_matrix()
 
     # calculating vertex-based presentation(PCA)
     def get_v_basis(self):
@@ -129,7 +129,7 @@ class Reshaper:
     def load_d2v_matrix(self):
         print(' [**] begin reload A&lu maxtrix')
         start = time.time()
-        A_file = self.data_path + "A_0%d" % self.flag_
+        d2v_file = self.data_path + "d2v_0%d" % self.flag_
         if self.paras['reload_d2v']:
             data = []
             rowidx = []
@@ -151,18 +151,19 @@ class Reshaper:
                     colidx += [v1[j], v2[j], v3[j], v4[j], v1[j],
                                v2[j], v3[j], v4[j], v1[j], v2[j], v3[j], v4[j]]
                     r += 3
-            A = scipy.sparse.coo_matrix((data, (rowidx, colidx)), shape=shape)
-            numpy.savez(A_file, row=A.row, col=A.col,
-                        data=A.data, shape=A.shape)
-            print('finised A')
+            d2v = scipy.sparse.coo_matrix(
+                (data, (rowidx, colidx)), shape=shape)
+            numpy.savez(d2v_file, row=d2v.row, col=d2v.col,
+                        data=d2v.data, shape=d2v.shape)
+            print('finised d2v')
         else:
-            loader = numpy.load(A_file + ".npz")
-            A = scipy.sparse.coo_matrix(
+            loader = numpy.load(d2v_file + ".npz")
+            d2v = scipy.sparse.coo_matrix(
                 (loader['data'], (loader['row'], loader['col'])),
                 shape=loader['shape'])
-        lu = scipy.sparse.linalg.splu(A.transpose().dot(A).tocsc())
+        lu = scipy.sparse.linalg.splu(d2v.transpose().dot(d2v).tocsc())
         print(' [**] finish load A&lu matrix in %fs.' % (time.time() - start))
-        return [A, lu]
+        return [d2v, lu]
 
     # synthesize a body by vertex-based
     def v_synthesize(self, weight):
@@ -180,7 +181,7 @@ class Reshaper:
     # synthesize a body by deform-based, given deformation, output vertex
     def d_synthesize(self, deformation):
         d = numpy.array(deformation.flat).reshape(deformation.size, 1)
-        Atd = self.A.transpose().dot(d)
+        Atd = self.d2v_.transpose().dot(d)
         x = self.lu.solve(Atd)
         x = x[:self.v_num * 3]
         # move to center

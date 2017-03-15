@@ -1,118 +1,101 @@
 #!/usr/bin/python
 # coding=utf-8
 
-import sys
-sys.path.append("..")
-from dataProcess.rawData import *
-from dataProcess.dataModel import *
-from dataProcess.basisData import *
 from openpyxl import Workbook
 import scipy.sparse.linalg
 import scipy.sparse
 import scipy
-import numpy as np
+import numpy
 import time
 
 
-class deformGlobal:
-    '''
-        a class used to calculate corrlated massage about deform-based global method
-        given: deform-based PCA coefficient, measure data
-        output: the matrix trans measure into deform-based PCA space
-    '''
-    __metaclass__ = Singleton
+# a class used to calculate corrlated massage about deform-based global method
+# given: deform-based PCA coefficient, measure data
+# output: the matrix trans measure into deform-based PCA space
+class DeformGlobal:
 
-    def __init__(self, data):
+    def __init__(self, male, female):
         self.TYPE = "deform-global"
-        self.data = data
+        self.body = [male, female]
+        self.current_body = self.body[0]
+        self.paras = self.current_body.paras
+
+        self.demo_num = self.current_body.m_num
+        self.ans_path = self.current_body.ans_path + "deform_global/"
+        self.data_path = self.paras["data_path"]
         self.deformation = None
-        self.D = self.load_global_matrix()
-        self.demo_num = self.data.measure_num
+        self.m2d_ = self.load_m2d()
 
-    # ---------------------------------------------------------------------
-    '''calculate global mapping from measure to deformation PCA coeff'''
-    # ---------------------------------------------------------------------
-
-    def load_global_matrix(self):
-        print(' [**] begin d_global_mapping ... ')
+    # calculate global mapping from measure to deformation PCA coeff
+    def load_m2d(self):
+        print(' [**] begin load_m2d ... ')
         start = time.time()
-        if self.data.paras['reload_D']:
-            W = self.data.d_coeff[:self.data.d_basis_num, :]  # (10, 1531)
-            W = W.transpose().reshape((W.size, 1))
-            M = self.data.build_equation(
-                self.data.t_measures, self.data.d_basis_num)
-            # solve transform matrix
-            MtM = M.transpose().dot(M)
-            MtW = M.transpose().dot(W)
-            D = np.array(scipy.sparse.linalg.spsolve(MtM, MtW)).reshape(
-                (self.data.d_basis_num, self.data.measure_num))
-            np.save(open(self.data.NPYpath + 'D.npy', 'wb'), D)
-            print(' [**] finish d_global_mapping in %fs' %
-                  (time.time() - start))
-            return D
+        m2d = []
+        names = [self.data_path + "m2d_01.npy", self.data_path + "m2d_02.npy"]
+        if self.data.paras['reload_m2d']:
+            for i, body in enumerate(self.body):
+                D = body.d_coeff.transpose().copy()
+                D.shape = (D.size, 1)
+                M = body.build_equation(body.t_measure, body.d_basis_num)
+                # solve transform matrix
+                MtM = M.transpose().dot(M)
+                MtD = M.transpose().dot(D)
+                ans = numpy.array(scipy.sparse.linalg.spsolve(MtM, MtD))
+                ans.shape = (body.d_basis_num, body.m_num)
+                m2d.append(ans)
+                numpy.save(open(names[i], "wb"))
         else:
-            print(' [**] finish d_global_mapping in %fs' %
-                  (time.time() - start))
-            return np.load(open(self.data.NPYpath + 'D.npy', 'rb'))
+            for fname in names:
+                tmp = numpy.load(open(fname, "rb"))
+                m2d.append(tmp)
+        print(' [**] finish load_m2d in %fs' % (time.time() - start))
+        return m2d
 
-    # ----------------------------------------------------------------
-    '''rebuild the female dataset using deform-based global method'''
-    # ----------------------------------------------------------------
+    # rebuild the female dataset by deform-global method
+    def d_rebuild(self):
+        names = [self.ans_path + "01/", self.ans_path + "02/"]
+        for i, body in enumerate(self.body):
+            self.set_body(i + 1)
+            error_path = self.ans_path + "d_global_0%d.xlsx" % (i + 1)
+            error_npy = self.ans_path + "error_0%d.npy" % (i + 1)
+            wb = Workbook()
+            ws = wb.get_active_sheet()
+            ans = numpy.zeros((body.m_num, body.body_num))
+            for j in range(0, body.m_num):
+                ws.cell(row=1, column=j + 2).value = body.measure_str[j]
+            for j in range(0, body.body_num):
+                print('rebuilding vertex_global-based: %d  ...' % j)
+                ws.cell(row=j + 2, column=1).value = j
+                data = body.t_measure[:, j].reshape(body.m_num, 1)
+                [vertex, n, f] = self.mapping(data)
+                body.save_obj(names[i] + body.file_list[j], vertex, f + 1)
 
-    def global_rebuild(self):
-        wb = Workbook()
-        ws = wb.get_active_sheet()
-        all = np.zeros((self.data.measure_num, self.data.body_count))
-        for i in range(0, self.data.measure_num):
-            ws.cell(row=1, column=i + 2).value = self.data.measure_str[i]
-        for i in range(0, self.data.body_count):
-            print('rebuilding deform_global-based: %d  ...' % i)
-            ws.cell(row=i + 2, column=1).value = i
-            input = self.data.t_measures[
-                :, i].reshape(self.data.measure_num, 1)
-            [vertex, n, f] = self.mapping(input)
-            # self.data.save_obj(self.data.ansPath+self.data.o_file_list[i], vertex, f+1)
+                data = body.mean_measure + body.std_measure * data
+                output = numpy.array(body.calc_measure(vertex))
+                error = output - data
+                error[0, 0] = (output[0, 0]**3) / (1000**3) - \
+                    (data[0, 0]**3) / (1000**3)
+                ans[:, j] = error.flat
+                for k in range(0, error.shape[0]):
+                    ws.cell(row=j + 2, column=k + 2).value = error[k, 0]
+            std = numpy.std(ans, axis=1)
+            mean = numpy.mean(abs(ans), axis=1)
+            ws.cell(row=body.body_num + 2, column=1).value = "mean error"
+            ws.cell(row=body.body_num + 3, column=1).value = "std"
+            for j in range(0, len(mean)):
+                ws.cell(row=body.body_num + 2, column=j + 2).value = mean[j]
+                ws.cell(row=body.body_num + 3, column=j + 2).value = std[j]
+            numpy.save(open(error_npy, "wb"), ans)
+            wb.save(error_path)
 
-            input = self.data.mean_measures + self.data.std_measures * input
-            output = np.array(self.data.calc_measures(vertex))
-            error = output - input
-            error[0, 0] = (output[0, 0]**3) / (1000**3) - \
-                (input[0, 0]**3) / (1000**3)
-            all[:, i] = error.flat
-            for j in range(0, error.shape[0]):
-                ws.cell(row=i + 2, column=j + 2).value = error[j, 0]
-        std = np.std(all, axis=1)
-        mean = np.mean(abs(all), axis=1)
-        ws.cell(row=self.data.body_count + 2, column=1).value = "mean error"
-        ws.cell(row=self.data.body_count + 3, column=1).value = "std"
-        for i in range(0, len(mean)):
-            ws.cell(row=self.data.body_count + 2, column=i + 2).value = mean[i]
-            ws.cell(row=self.data.body_count + 3, column=i + 2).value = std[i]
-        wb.save(self.data.ansPath + 'rebuild_d_global.xlsx')
+    # given t_measure, return body shape
+    def mapping(self, weight):
+        weight = numpy.array(weight[:self.demo_num, :])
+        weight.shape = (self.demo_num, 1)
+        m2d = self.m2d_[self.current_body.flag_ - 1]
+        weight = m2d.dot(weight)
 
-    # -----------------------------------------------------------------------
-    '''given t_measure, output vertex, using deform-based global method'''
-    # -----------------------------------------------------------------------
-
-    def mapping(self, data):
-        data = np.array(data[:self.demo_num, :]).reshape(self.demo_num, 1)
-        alpha = self.D.dot(data)
-        basis = self.data.d_basis[:, :self.data.d_basis_num]
-        alpha = np.array(alpha).reshape(alpha.size, 1)
-        self.deformation = self.data.mean_deform + \
-            np.matmul(basis, alpha) * self.data.std_deform
-        return self.data.d_synthesize(self.deformation)
-
-
-#############################################
-'''test'''
-#############################################
-if __name__ == "__main__":
-    filename = "../parameter.json"
-    data = rawData(filename)
-    bd = basisData(data)
-    mark = Masker(data)
-    model = dataModel(bd, mark)
-
-    dg = deformGlobal(model)
-    dg.global_rebuild()
+        basis = self.current_body.d_basis[:, :self.current_body.d_basis_num]
+        d = numpy.matmul(basis, weight)
+        [v, n, f] = self.current_body.d_synthesize(d)
+        return [v, n, f]

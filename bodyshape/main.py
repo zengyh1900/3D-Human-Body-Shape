@@ -7,55 +7,43 @@ from myutils.reshaper import *
 from model.vertex_model import *
 from model.measure_model import *
 from model.deform_model import *
+from model.vertex_global import *
 
 
 paras = "parameter.json"
 male = MetaData(paras, 1)
 female = MetaData(paras, 2)
 
-
-# test for myutils.meta
-def test_meta():
-    pass
+male_miner = Miner(male)
+female_miner = Miner(female)
 
 
-# test for myutils.miner
-def test_miner():
-    male_miner = Miner(male)
-    male_miner.test()
-
-    female_miner = Miner(female)
-    female_miner.test()
-
-
-# test for myutils.reshaper
-def test_reshaper():
-    test_vertex_model(paras)
+male_body = Reshaper(male)
+female_body = Reshaper(female)
 
 
 # test for vertex_model
 def test_vertex_model():
-    male_body = Reshaper(male)
-    female_body = Reshaper(female)
     model = VertexModel(male_body, female_body)
     model.show_v_pca()
 
 
 # test for measure_model
 def test_measure_model():
-    male_body = Reshaper(male)
-    female_body = Reshaper(female)
     model = MeasureModel(male_body, female_body)
     model.show_m_pca()
 
 
 # test for deform_Model
 def test_deform_model():
-    male_body = Reshaper(male)
-    female_body = Reshaper(female)
     model = DeformModel(male_body, female_body)
     model.show_d_pca()
 
 
+def test_vertex_global():
+    model = VertexGlobal(male_body, female_body)
+    model.v_rebuild()
+
+
 if __name__ == "__main__":
-    test_deform_model()
+    test_vertex_global()
