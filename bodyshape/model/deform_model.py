@@ -45,5 +45,9 @@ class DeformModel:
         coeff += self.current_body.d_pca_mean
         basis = self.current_body.d_basis[:, :self.demo_num]
         d = numpy.matmul(basis, coeff)
+        d.shape = (self.current_body.f_num, 9)
+        d *= self.current_body.std_deform
+        d += self.current_body.mean_deform
+        d.shape = (self.current_body.f_num * 9, 1)
         [v, n, f] = self.current_body.d_synthesize(d)
         return [v, n, f]

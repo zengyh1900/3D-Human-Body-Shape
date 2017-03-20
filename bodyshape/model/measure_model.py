@@ -38,14 +38,27 @@ class MeasureModel:
                  self.data_path + "basis_map_02.npy"]
         if self.current_body.paras["reload_M"]:
             for i, body in enumerate(self.body):
-                V = numpy.array(body.v_coeff.transpose().copy())
-                V.shape = (V.size, 1)
+                V = body.v_coeff.transpose().copy()
+                V.shape = (body.v_basis_num * body.body_num, 1)
                 M = body.build_equation(body.m_coeff, body.v_basis_num)
                 # solve transform matrix
                 MtM = M.transpose().dot(M)
                 MtV = M.transpose().dot(V)
                 ans = numpy.array(scipy.sparse.linalg.spsolve(MtM, MtV))
                 ans.shape = (body.v_basis_num, body.m_basis_num)
+                # -------------------------------------------
+                # for j in range(0, body.body_num):
+                #     v = numpy.array(body.v_coeff[:, j])
+                #     v.shape = (body.v_basis_num, 1)
+                #     m = numpy.array(body.m_coeff[:, j])
+                #     m.shape = (body.m_basis_num, 1)
+                #     # rev = (v_max - v_min) * (ans.dot(m)) + v_min
+                #     rev = ans.dot(m)
+                #     print("v:\n", v)
+                #     print("m:\n", m)
+                #     print("re-v:\n", rev)
+                #     input()
+                # -------------------------------------------
                 basis_map.append(ans)
                 numpy.save(open(names[i], "wb"), ans)
         else:
@@ -76,7 +89,9 @@ class MeasureModel:
         coeff.shape = (self.demo_num, 1)
         coeff *= self.current_body.m_pca_std
         coeff += self.current_body.m_pca_mean
+
         m2v = self.basis_map[self.current_body.flag_ - 1]
         coeff = m2v.dot(coeff)
+
         [v, n, f] = self.current_body.v_synthesize(coeff)
         return [v, n, f]

@@ -45,6 +45,19 @@ class DeformGlobal:
                 MtD = M.transpose().dot(D)
                 ans = numpy.array(scipy.sparse.linalg.spsolve(MtM, MtD))
                 ans.shape = (body.d_basis_num, body.m_num)
+                # -------------------------------------------
+                # for j in range(0, body.body_num):
+                #     d = numpy.array(body.d_coeff[:, j])
+                #     d.shape = (body.d_basis_num, 1)
+                #     m = numpy.array(body.t_measure[:, j])
+                #     m.shape = (body.m_num, 1)
+                #     red = ans.dot(m)
+                #     red = (red - body.d_pca_mean) / body.d_pca_std
+                #     print(j)
+                #     print("d:\n", (d - body.d_pca_mean) / body.d_pca_std)
+                #     print("re-d:\n", red)
+                #     input()
+                # -------------------------------------------
                 m2d.append(ans)
                 numpy.save(open(names[i], "wb"), ans)
         else:
@@ -65,7 +78,7 @@ class DeformGlobal:
             ws = wb.get_active_sheet()
             ans = numpy.zeros((body.m_num, body.body_num))
             for j in range(0, body.m_num):
-                ws.cell(row=1, column=j + 2).value = body.measure_str[j]
+                ws.cell(row=1, column=j + 2).value = body.m_str[j]
             for j in range(0, body.body_num):
                 print('rebuilding deform_global-based: %d  ...' % j)
                 ws.cell(row=j + 2, column=1).value = j
@@ -73,7 +86,7 @@ class DeformGlobal:
                 [vertex, n, f] = self.mapping(data)
                 body.save_obj(names[i] + body.file_list[j], vertex, f + 1)
 
-                data = body.mean_measure + body.std_measure * data
+                data = body.mean_measure + data * body.std_measure
                 output = numpy.array(body.calc_measure(vertex))
                 error = output - data
                 error[0, 0] = (output[0, 0]**3) / (1000**3) - \
@@ -95,10 +108,14 @@ class DeformGlobal:
     def mapping(self, weight):
         weight = numpy.array(weight[:self.demo_num, :])
         weight.shape = (self.demo_num, 1)
+
         m2d = self.m2d_[self.current_body.flag_ - 1]
         weight = m2d.dot(weight)
-
         basis = self.current_body.d_basis[:, :self.current_body.d_basis_num]
         d = numpy.matmul(basis, weight)
+        d.shape = (self.current_body.f_num, 9)
+        d *= self.current_body.std_deform
+        d += self.current_body.mean_deform
+        d.shape = (self.current_body.f_num * 9, 1)
         [v, n, f] = self.current_body.d_synthesize(d)
         return [v, n, f]

@@ -68,10 +68,10 @@ class Miner:
             for i in range(0, top):
                 ws.cell(row=i * (top + 2) + 1, column=1).value = i
                 ws.cell(row=i * (top + 2) + 1,
-                        column=2).value = self.data.measure_str[i]
+                        column=2).value = self.data.m_str[i]
                 for j in range(0, top):
                     ws.cell(row=i * (top + 2) + j + 2,
-                            column=1).value = self.data.measure_str[j]
+                            column=1).value = self.data.m_str[j]
                     ws.cell(row=i * (top + 2) + j + 2,
                             column=2).value = table[i, j]
             wb.save(filename=cf_excel)
@@ -151,7 +151,7 @@ class Miner:
             output_ws.cell(row=(i * table_size) + 2, column=1).value = i
             for j in range(0, self.data.m_num):
                 output_ws.cell(row=(i * table_size) + 3 + j,
-                               column=1).value = self.data.measure_str[j]
+                               column=1).value = self.data.m_str[j]
             k = 2
 
             # test for imputation technology

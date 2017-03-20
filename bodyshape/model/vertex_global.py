@@ -45,24 +45,26 @@ class VertexGlobal:
                 MtV = M.transpose().dot(V)
                 ans = numpy.array(scipy.sparse.linalg.spsolve(MtM, MtV))
                 ans.shape = (body.v_basis_num, body.m_num)
-                # ---------------------------------
-                print("t_measure shape: \n", body.t_measure.shape)
-                print("v_coeff shape: \n", body.v_coeff.shape)
-                input()
-                v = numpy.array(body.v_coeff[:, 0])
-                v.shape = (body.d_basis_num, 1)
-                m = numpy.array(body.t_measure[:, 0])
-                m.shape = (body.m_num, 1)
-                print(v.shape, m.shape, ans.shape)
-                print("before:\n", v)
-                print("after:\n", ans.dot(m))
-                input()
-                # ---------------------------------
+                # -------------------------------------------
+                # for j in range(0, body.body_num):
+                #     v = numpy.array(body.v_coeff[:, j])
+                #     v.shape = (body.v_basis_num, 1)
+                #     m = numpy.array(body.t_measure[:, j])
+                #     m.shape = (body.m_num, 1)
+                #     v1 = (v - body.v_pca_mean) / body.v_pca_std
+                #     rev = ans.dot(m)
+                #     rev = (rev - body.v_pca_mean) / body.v_pca_std
+                #     print(j)
+                #     print("v:\n", v1)
+                #     print("m:\n", m)
+                #     print("re-v:\n", rev)
+                #     input()
+                # -------------------------------------------
                 m2v.append(ans)
                 numpy.save(open(names[i], "wb"), ans)
         else:
             for fname in names:
-                tmp = numpy.load(open(fname), "rb")
+                tmp = numpy.load(open(fname, "rb"))
                 m2v.append(tmp)
         print(' [**] finish load_m2v  in %fs' % (time.time() - start))
         return m2v
@@ -78,7 +80,7 @@ class VertexGlobal:
             ws = wb.get_active_sheet()
             ans = numpy.zeros((body.m_num, body.body_num))
             for j in range(0, body.m_num):
-                ws.cell(row=1, column=j + 2).value = body.measure_str[j]
+                ws.cell(row=1, column=j + 2).value = body.m_str[j]
             for j in range(0, body.body_num):
                 print('rebuilding vertex_global-based: %d  ...' % j)
                 ws.cell(row=j + 2, column=1).value = j
@@ -86,7 +88,7 @@ class VertexGlobal:
                 [vertex, n, f] = self.mapping(data)
                 body.save_obj(names[i] + body.file_list[j], vertex, f + 1)
 
-                data = body.mean_measure + body.std_measure * data
+                data = body.mean_measure + data * body.std_measure
                 output = numpy.array(body.calc_measure(vertex))
                 error = output - data
                 error[0, 0] = (output[0, 0]**3) / (1000**3) - \
@@ -94,7 +96,6 @@ class VertexGlobal:
                 ans[:, j] = error.flat
                 for k in range(0, error.shape[0]):
                     ws.cell(row=j + 2, column=k + 2).value = error[k, 0]
-                print(error)
             std = numpy.std(ans, axis=1)
             mean = numpy.mean(abs(ans), axis=1)
             ws.cell(row=body.body_num + 2, column=1).value = "mean error"

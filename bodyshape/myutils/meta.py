@@ -34,7 +34,7 @@ class MetaData:
         self.data_path = self.paras['data_path'] + "meta/"
         self.ans_path = self.paras['ans_path']
 
-        self.measure_str = self.paras['measure_str']
+        self.m_str = self.paras['m_str']
         self.m_num = self.paras['m_num']
         self.v_num = self.paras['v_num']
         self.f_num = self.paras['f_num']
@@ -46,7 +46,8 @@ class MetaData:
         [self.file_list, self.vertex, self.mean_vertex,
             self.std_vertex] = self.obj2data()
         self.body_num = len(self.file_list)
-        [self.d_inv_mean, self.deform] = self.load_d_data()
+        [self.d_inv_mean, self.deform, self.mean_deform,
+            self.std_deform] = self.load_d_data()
         [self.measure, self.mean_measure, self.std_measure,
             self.t_measure] = self.load_measure()
         [self.part, self.mask] = self.getMap()
@@ -249,8 +250,12 @@ class MetaData:
         else:
             d_inv_mean = numpy.load(open(d_inv_mean_file, "rb"))
             deform = numpy.load(open(deform_file, "rb"))
+        mean_deform = numpy.array(deform.mean(axis=0))
+        mean_deform.shape = (self.f_num, 9)
+        std_deform = numpy.array(deform.std(axis=0))
+        std_deform.shape = (self.f_num, 9)
         print(' [**] finish load_d_data in %fs' % (time.time() - start))
-        return[d_inv_mean, deform]
+        return[d_inv_mean, deform, mean_deform, std_deform]
 
     # calculating the inverse of mean vertex matrix, v^-1
     def get_inv_mean(self):

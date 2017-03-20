@@ -24,7 +24,7 @@ class Reshaper:
         self.d_basis_num = self.paras["d_basis_num"]
         self.m_basis_num = self.paras["m_basis_num"]
 
-        [self.measure_str, self.cp] = [data.measure_str, data.cp]
+        [self.m_str, self.cp] = [data.m_str, data.cp]
         [self.part, self.mask] = [data.part, data.mask]
         [self.v_num, self.f_num, self.m_num, self.p_num, self.body_num] = \
             [data.v_num, data.f_num, data.m_num, data.p_num, data.body_num]
@@ -32,8 +32,8 @@ class Reshaper:
             [data.facet, data.file_list, data.normals]
         [self.vertex, self.mean_vertex, self.std_vertex] = \
             [data.vertex, data.mean_vertex, data.std_vertex]
-        [self.d_inv_mean, self.deform] = \
-            [data.d_inv_mean, data.deform]
+        [self.d_inv_mean, self.deform, self.mean_deform, self.std_deform] = \
+            [data.d_inv_mean, data.deform, data.mean_deform, data.std_deform]
         [self.measure, self.mean_measure, self.std_measure, self.t_measure] = \
             [data.measure, data.mean_measure, data.std_measure, data.t_measure]
 
@@ -54,9 +54,10 @@ class Reshaper:
         print(" [**] begin get_v_basis ...")
         v_basis_file = self.data_path + 'v_basis_0%d.npy' % self.flag_
         start = time.time()
-        v = self.vertex
-        v.shape = (self.body_num, 3 * self.v_num)
-        v = v.transpose()
+        self.vertex -= self.mean_vertex
+        self.vertex /= self.std_vertex
+        self.vertex.shape = (self.body_num, 3 * self.v_num)
+        v = self.vertex.transpose()
         if self.paras['reload_v_basis']:
             # principle component analysis
             v_basis, v_sigma, V = numpy.linalg.svd(v, full_matrices=0)
@@ -71,8 +72,9 @@ class Reshaper:
         v_pca_mean.shape = (v_pca_mean.size, 1)
         v_pca_std = numpy.array(numpy.std(v_coeff, axis=1))
         v_pca_std.shape = (v_pca_std.size, 1)
-        v = v.transpose()
-        v.shape = (self.body_num, self.v_num, 3)
+        self.vertex.shape = (self.body_num, self.v_num, 3)
+        self.vertex *= self.std_vertex
+        self.vertex += self.mean_vertex
         print(' [**] finish get_v_basis in %fs' % (time.time() - start))
         return [v_basis, v_coeff, v_pca_mean, v_pca_std]
 
@@ -81,9 +83,10 @@ class Reshaper:
         print(" [**] begin get_d_basis ...")
         d_basis_file = self.data_path + 'd_basis_0%d.npy' % self.flag_
         start = time.time()
-        d = self.deform
-        d.shape = (self.body_num, 9 * self.f_num)
-        d = d.transpose()
+        self.deform -= self.mean_deform
+        self.deform /= self.std_deform
+        self.deform.shape = (self.body_num, 9 * self.f_num)
+        d = self.deform.transpose()
         if self.paras['reload_d_basis']:
             # principle component analysis
             d_basis, d_sigma, V = numpy.linalg.svd(d, full_matrices=0)
@@ -98,8 +101,9 @@ class Reshaper:
         d_pca_mean.shape = (d_pca_mean.size, 1)
         d_pca_std = numpy.array(numpy.std(d_coeff, axis=1))
         d_pca_std.shape = (d_pca_std.size, 1)
-        d = d.transpose()
-        d.shape = (self.body_num, self.f_num, 9)
+        self.deform.shape = (self.body_num, self.f_num, 9)
+        self.deform *= self.std_deform
+        self.deform += self.mean_deform
         print(' [**] finish get_d_basis in %fs' % (time.time() - start))
         return [d_basis, d_coeff, d_pca_mean, d_pca_std]
 
@@ -110,11 +114,11 @@ class Reshaper:
         start = time.time()
         if self.data.paras["reload_m_basis"]:
             # principle component analysis
-            m_basis, g, M = numpy.linalg.svd(self.measure, full_matrices=0)
+            m_basis, g, M = numpy.linalg.svd(self.t_measure, full_matrices=0)
             numpy.save(open(m_basis_file, "wb"), m_basis)
         else:
             m_basis = numpy.load(open(m_basis_file, "rb"))
-        m_coeff = numpy.dot(m_basis.transpose(), self.measure)
+        m_coeff = numpy.dot(m_basis.transpose(), self.t_measure)
         m_coeff = numpy.array(m_coeff[:self.m_basis_num, :])
         m_coeff.shape = (self.m_basis_num, self.body_num)
         m_pca_mean = numpy.array(numpy.mean(m_coeff, axis=1))
@@ -171,6 +175,8 @@ class Reshaper:
         basis.shape = (3 * self.v_num, self.v_basis_num)
         v = numpy.dot(basis, weight)
         v.shape = (self.v_num, 3)
+        v *= self.std_vertex
+        v += self.mean_vertex
         return [v, -self.normals, self.facet - 1]
 
     # construct the matrix = v_mean_inv.dot(the matrix consists of 0 -1...)

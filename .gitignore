@@ -1,5 +1,6 @@
 *.pyc
 *.obj
-data
 result
+data
+pic
 __pycache__
