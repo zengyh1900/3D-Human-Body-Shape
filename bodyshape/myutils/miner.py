@@ -134,7 +134,7 @@ class Miner:
         input_wb = load_workbook(filename=input_file)
         sheets = input_wb.get_sheet_names()
         input_ws = input_wb.get_sheet_by_name(sheets[0])
-        output_file = self.ans_path + '/prediction.xlsx'
+        output_file = self.ans_path + '/prediction_0%d.xlsx' % self.flag_
         output_wb = Workbook()
         output_ws = output_wb.get_active_sheet()
 

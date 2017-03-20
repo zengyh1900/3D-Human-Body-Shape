@@ -125,7 +125,7 @@ class MayaviQWidget(QtGui.QWidget):
         self.update()
 
     def sliderForwardedValueChangeHandler(self, sliderID, val, minVal, maxVal):
-        x = (val / 100.0) * 5.0
+        x = val / 10.0
         self.input_data[sliderID] = x
         start = time.time()
         self.update()

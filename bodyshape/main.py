@@ -49,5 +49,15 @@ def show_app():
     sys.exit(app.exec_())
 
 
+def test_miner():
+    male = MetaData(paras, 1)
+    male_miner = Miner(male)
+    male_miner.test()
+
+    female = MetaData(paras, 2)
+    female_miner = Miner(female)
+    female_miner.test()
+
+
 if __name__ == "__main__":
-    rebuild()
+    show_app()
