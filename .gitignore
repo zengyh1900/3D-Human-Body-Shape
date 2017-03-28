@@ -2,5 +2,5 @@
 *.obj
 result
 data
-*.png
+pic
 __pycache__
