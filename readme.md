@@ -1,5 +1,6 @@
-# What's this?
 ![creating by deform-based global mapping](https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/ans/dg-h.png)
+
+# What's this?
 1. It's a personal project for synthesizing 3D Human Body Shape.
 2. Input: your anthropometric measurements such as height, weight etc.
 3. Output: your 3D body shape
