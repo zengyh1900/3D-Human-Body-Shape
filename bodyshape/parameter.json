@@ -6,8 +6,8 @@
   "v_basis_num": 10,
   "d_basis_num": 10,
   "m_basis_num": 10,
-  "data_path": "../data/",
-  "ans_path": "../result/",
+  "data_path": "data/",
+  "ans_path": "result/",
 
   "reload_obj": false,
   "reload_cp": false,
