@@ -1,19 +1,19 @@
 # First, and before importing any Enthought packages, set the ETS_TOOLKIT
 # environment variable to qt4, to tell Traits that we will use Qt.
 
-from myutils import *
-from model import *
 from mayavi.core.ui.api import MayaviScene, MlabSceneModel, SceneEditor
 from traits.api import HasTraits, Instance, on_trait_change
 from traitsui.api import View, Item
 from mayavi import mlab
-import numpy
-import time
-import os
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtOpenGL import *
 from OpenGL.GL import *
 from ctypes import *
+import numpy as np
+import time
+import os
+import reshaper
+from reshaper import Reshaper
 os.environ['ETS_TOOLKIT'] = 'qt4'
 
 
@@ -35,7 +35,6 @@ class IndexedQSlider(QtGui.QSlider):
         self.valueChangeForwarded.emit(
             self.sliderID, val, self.minimum(), self.maximum())
 
-
 class myAction(QtGui.QAction):
     myact = QtCore.pyqtSignal(int)
 
@@ -47,7 +46,6 @@ class myAction(QtGui.QAction):
     def emitSelect(self):
         self.myact.emit(self._id)
 
-
 class Visualization(HasTraits):
     scene = Instance(MlabSceneModel, ())
 
@@ -57,13 +55,12 @@ class Visualization(HasTraits):
         mlab.triangular_mesh(v[:, 0], v[:, 1], v[:, 2], f)
     # the layout of the dialog screated
     view = View(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
-                     height=250, width=300, show_label=False), resizable=True)
-
+                     height=200, width=250, show_label=False), resizable=True)
 
 # The QWidget for rendering 3D shape
 class MayaviQWidget(QtGui.QWidget):
 
-    def __init__(self, parent, file):
+    def __init__(self, parent):
         QtGui.QWidget.__init__(self, parent)
         layout = QtGui.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -71,57 +68,30 @@ class MayaviQWidget(QtGui.QWidget):
         self.visualization = Visualization()
 
         # The edit_traits call will generate the widget to embed.
-        self.ui = self.visualization.edit_traits(
-            parent=self, kind='subpanel').control
+        self.ui = self.visualization.edit_traits(parent=self, kind='subpanel').control
         layout.addWidget(self.ui)
         self.ui.setParent(self)
 
         # models for shape representing
-        self.data = [MetaData(file, 1), MetaData(file, 2)]
-        self.miner = [Miner(self.data[0]), Miner(self.data[1])]
-        self.reshaper = [Reshaper(self.data[0]), Reshaper(self.data[1])]
+        self.bodies = {"female": Reshaper(label="female"), "male":Reshaper(label="male")}
+        self.body = self.bodies["female"]
+        self.flag_ = 0
 
-        self.models = [MeasureModel(self.reshaper[0], self.reshaper[1]),
-                       VertexModel(self.reshaper[0], self.reshaper[1]),
-                       DeformModel(self.reshaper[0], self.reshaper[1]),
-                       VertexGlobal(self.reshaper[0], self.reshaper[1]),
-                       DeformGlobal(self.reshaper[0], self.reshaper[1]),
-                       DeformLocal(self.reshaper[0], self.reshaper[1])]
-        self.mode = ["Measure Model", "Vertex Model", "Deform Model",
-                     "Vertex Global", "Deform Global", "Deform Local"]
-        self.mode_index = 0
-        self.flag_ = 1
-        self.current_model = self.models[self.mode_index]
-        self.current_model.set_body(self.flag_)
-        body = self.current_model.current_body
-
-        self.paras = self.current_model.paras
-        self.ans_path = self.paras["ans_path"]
-        self.input_data = numpy.zeros((body.m_num, 1))
-
-        # data for Model
-        self.deformation = None
-        self.vertices = body.mean_vertex
-        self.normals = body.normals
-        self.facets = body.facet
+        self.vertices = self.body.mean_vertex
+        self.normals = self.body.normals
+        self.facets = self.body.facets
+        self.input_data = np.zeros((reshaper.M_NUM, 1))
         self.update()
 
     def update(self):
         [self.vertices, self.normals, self.facets] = \
-            self.current_model.mapping(self.input_data)
+            self.body.mapping(self.input_data, self.flag_)
         self.vertices = self.vertices.astype('float32')
-        self.deformation = self.current_model.deformation
         self.visualization.update_plot(self.vertices, self.facets)
 
-    def set_flag(self, flag):
+    def select_mode(self, label="female", flag=0):
+        self.body = self.bodies[label]
         self.flag_ = flag
-        self.current_model.set_body(flag)
-        self.update()
-
-    def select_mode(self, i):
-        self.mode_index = i
-        self.current_model = self.models[i]
-        self.current_model.set_body(self.flag_)
         self.update()
 
     def sliderForwardedValueChangeHandler(self, sliderID, val, minVal, maxVal):
@@ -132,24 +102,19 @@ class MayaviQWidget(QtGui.QWidget):
         print(' [**] update body in %f s' % (time.time() - start))
 
     def save(self):
-        filename = self.ans_path + "test.obj"
-        body = self.current_model.current_body
-        body.save_obj(filename, self.vertices, self.facets)
-        m_ans = body.calc_measure(self.vertices)
-        m_ans[0, 0] = (m_ans[0, 0]**3) / (1000**3)
-        print(' [**] m_ans: ')
-        for i in range(0, body.m_num):
-            print("%s: %f" % (body.m_str[i], m_ans[i, 0]))
+        reshaper.save_obj(os.path.join(reshaper.DATA_DIR, "test.obj"), self.vertices, self.facets)
+        output = np.array(reshaper.calc_measure(self.body.cp, self.vertices, self.facets))
+        for i in range(0, reshaper.M_NUM):
+            print("%s: %f" % (reshaper.M_STR[i], output[i, 0]))
 
     def predict(self, data):
-        body = self.current_model.current_body
-        mask = numpy.zeros((body.m_num, 1), dtype=bool)
+        mask = np.zeros((reshaper.M_NUM, 1), dtype=bool)
         for i in range(0, data.shape[0]):
             if data[i, 0] != 0:
-                data[i, 0] -= body.mean_measure[i, 0]
-                data[i, 0] /= body.std_measure[i, 0]
+                data[i, 0] -= self.body.mean_measure[i, 0]
+                data[i, 0] /= self.body.std_measure[i, 0]
                 mask[i, 0] = 1
-        self.input_data = self.miner[self.flag_ - 1].get_predict(mask, data)
+        self.input_data = self.body.get_predict(mask, data)
         self.update()
-        return [self.input_data,
-                body.mean_measure + self.input_data * body.std_measure]
+        measure = self.body.mean_measure + self.input_data*self.body.std_measure
+        return [self.input_data, measure]
