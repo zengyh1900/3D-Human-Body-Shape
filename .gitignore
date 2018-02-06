@@ -1,6 +1,5 @@
 *.pyc
 *.obj
 result
-data
 *.DS_Store
 __pycache__
