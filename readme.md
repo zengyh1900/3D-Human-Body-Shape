@@ -49,4 +49,4 @@ It works well on Windows/OSX/Linux.
 # Different Mapping Methods
 1. global mapping
 2. [local_with_mask](https://dl.acm.org/citation.cfm?id=2758217)
-3. [local_with_rfemat](https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/pics/3D_Human_Body_Reshaping_with_Anthropometric_Modeling.pdf)
+3. local_with_rfemat
