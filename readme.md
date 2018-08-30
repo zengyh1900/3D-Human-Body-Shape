@@ -59,7 +59,20 @@ python demo.py
 ![creating by deform-based global mapping](https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/pics/fig3.png)
 
 
-# Different Mapping Methods
+### Different Mapping Methods
 1. global mapping
 2. [local_with_mask](https://dl.acm.org/citation.cfm?id=2758217)
 3. [local_with_rfemat](https://link.springer.com/chapter/10.1007/978-981-10-8530-7_10)
+
+
+## Citation  
+If you find this paper useful, please cite:
+
+```
+@article{zeng2017humanbody,
+  title={3D Human Body Reshaping with Anthropometric Modeling},
+  author={Yanhong Zeng, Jianlong Fu, Hongyang Chao},
+  journal={ICIMCS},
+  year={2017}
+}
+```
