@@ -1,24 +1,19 @@
 # 3D Human Body Reshaping with Anthropometric Modeling  
----------
-
 source code of paper: [3D Human Body Reshaping with Anthropometric Modeling](https://link.springer.com/chapter/10.1007/978-981-10-8530-7_10) 
 
-
 ## Examples  
----------
 - Input: your anthropometric measurements such as height, weight etc. 
 - Output: your 3D body shape (i.e., obj file)
 
 ![creating by deform-based global mapping](https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/pics/dg-h.png)
 
 
-## Instructions
------------------
+## Instructions  
 
 ### Environment  
 Windows/OSX/Linux
 
-### Package
+### Package  
 1. python 3.5
 2. cython
 3. cvxpy  
@@ -32,8 +27,9 @@ Windows/OSX/Linux
 11. opengl
 12. ctypes
 13. pyqt4
-14. mayavi
-(Note: if you want to run on Windows, strong recommend use 'pip install' from packages download [here](https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyqt4))
+14. mayavi  
+
+(Note: if you want to run on Windows, strongly recommend to use 'pip install' from .whl files download [here](https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyqt4))
 
 
 ### Training
