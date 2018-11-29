@@ -58,10 +58,12 @@ python demo.py
 If you find this paper useful, please cite:
 
 ```
-@article{zeng2017humanbody,
+@inproceedings{zeng20173d,
   title={3D Human Body Reshaping with Anthropometric Modeling},
-  author={Yanhong Zeng, Jianlong Fu, Hongyang Chao},
-  journal={ICIMCS},
-  year={2017}
+  author={Zeng, Yanhong and Fu, Jianlong and Chao, Hongyang},
+  booktitle={International Conference on Internet Multimedia Computing and Service},
+  pages={96--107},
+  year={2017},
+  organization={Springer}
 }
 ```
