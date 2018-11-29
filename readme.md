@@ -14,20 +14,9 @@ source code of paper: [3D Human Body Reshaping with Anthropometric Modeling](htt
 Windows/OSX/Linux
 
 ### Package  
-1. python 3.5
-2. cython
-3. cvxpy  
-4. numpy
-5. scipy
-6. openpyxl
-7. vtk
-8. ecos
-9. fancyimpute=0.3.2
-10. traits
-11. opengl
-12. ctypes
-13. pyqt4
-14. mayavi  
+```
+pip install -r requirements.txt
+```
 
 (Note: if you want to run on Windows, strongly recommend to use 'pip install' from .whl files download [here](https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyqt4))
 

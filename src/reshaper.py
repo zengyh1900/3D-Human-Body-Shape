@@ -27,15 +27,12 @@ M_STR = ["weight", "height", "neck", "chest",
 def save_obj(filename, v, f):
     file = open(filename, 'w')
     for i in range(0, v.shape[0]):
-        file.write('v')
-        for j in range(0, v.shape[1]):
-            file.write(" %f" % v[i][j])
-        file.write("\n")
+        file.write('v %f %f %f\n'%(v[i][0], v[i][1], v[i][2]))
     for i in range(0, f.shape[0]):
-        file.write('f %d %d %d\n' % (f[i][0], f[i][1], f[i][2]))
+        file.write('f %d %d %d\n'%(f[i][0], f[i][1], f[i][2]))
+    file.close()
     tmp = v[:, 2]
     print('      save ' + filename + "  ,height: ", tmp.max() - tmp.min())
-    file.close()
 
 # calculate the corresponding deformation from the input vertex
 def get_deform(vertex, facet):

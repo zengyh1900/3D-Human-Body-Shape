@@ -102,7 +102,7 @@ class MayaviQWidget(QtGui.QWidget):
         print(' [**] update body in %f s' % (time.time() - start))
 
     def save(self):
-        reshaper.save_obj(os.path.join(reshaper.DATA_DIR, "test.obj"), self.vertices, self.facets)
+        reshaper.save_obj(os.path.join(reshaper.DATA_DIR, "test.obj"), self.vertices, self.facets+1)
         output = np.array(reshaper.calc_measure(self.body.cp, self.vertices, self.facets))
         for i in range(0, reshaper.M_NUM):
             print("%s: %f" % (reshaper.M_STR[i], output[i, 0]))

@@ -1,0 +1,13 @@
+cython
+cvxpy
+numpy
+scipy
+openpyxl
+vtk
+ecos
+fancyimpute=0.3.2
+traits
+opengl
+ctypes
+pyqt4
+mayavi
