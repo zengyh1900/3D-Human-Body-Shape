@@ -22,6 +22,7 @@ pip install -r requirements.txt
 
 
 ### Training
+You need to download your own datasets and run the scripts as below:
 ```
 git clone https://github.com/1900zyh/3D-Human-Body-Shape.git
 cd 3D-Human-Body-Shape/
@@ -30,6 +31,7 @@ python body_utils.py
 ```
 
 ### Testing
+I have put the data needed for running demo in data folder, you can run the demo directly by running the scripts as below:
 ```
 cd src/
 python demo.py
