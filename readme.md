@@ -41,16 +41,18 @@ python demo.py
 
 ### Running API
 1. adjust size (the numbers represents times of std, e.g. 30 means +3 std)
-![creating by deform-based global mapping](https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/pics/fig1.png){:height="50%" width="50%"}
+<!-- ![creating by deform-based global mapping](https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/pics/fig1.png) -->
+<img src="https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/pics/fig1.png" width="500" hegiht="313" align=center />
 
 2. 'Ctrl + s' to save obj file
 
 3. choose different mapping method
-![creating by deform-based global mapping](https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/pics/fig2.png){:height="50%" width="50%"}
+<!-- ![creating by deform-based global mapping](https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/pics/fig2.png) -->
+<img src="https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/pics/fig2.png" width="500" hegiht="313" align=center />
 
 4. press 'PREDICT' button to input the numbers(You don't need to fill out the form, the defualt can be estimated)
-![creating by deform-based global mapping](https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/pics/fig3.png){:height="50%" width="50%"}
-
+<!-- ![creating by deform-based global mapping](https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/pics/fig3.png){:height="50%" width="50%"} -->
+<img src="https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/pics/fig3.png" width="500" hegiht="313" align=center />
 
 ### Different Mapping Methods
 1. global mapping
