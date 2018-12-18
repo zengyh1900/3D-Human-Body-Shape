@@ -10,6 +10,8 @@ source code of paper: [3D Human Body Reshaping with Anthropometric Modeling](htt
 
 ## Instructions  
 
+### Training data
+Training data can be found here: [SPRING](https://graphics.soe.ucsc.edu/data/BodyModels/index.html)
 ### Environment  
 Windows/OSX/Linux
 
