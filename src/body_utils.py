@@ -15,7 +15,7 @@ import sys
 import time
 import os
 
-DATA_DIR = "../../TrainingData"
+DATA_DIR = "../TrainingData"
 V_NUM = 12500
 F_NUM = 25000
 M_NUM = 19

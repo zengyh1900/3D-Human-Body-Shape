@@ -11,7 +11,13 @@ source code of paper: [3D Human Body Reshaping with Anthropometric Modeling](htt
 ## Instructions  
 
 ### Training data
-Training data can be found here: [SPRING](https://graphics.soe.ucsc.edu/data/BodyModels/index.html)
+1. download training data from [SPRING](https://graphics.soe.ucsc.edu/data/BodyModels/index.html)
+2. put the datasets under TrainingData folder 
+3. refer to src/body_utils.py for building models
+
+(Note: you can directly run the demo without training data. )
+
+
 ### Environment  
 Windows/OSX/Linux
 
