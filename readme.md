@@ -1,7 +1,7 @@
 # 3D Human Body Reshaping with Anthropometric Modeling  
 source code of paper: [3D Human Body Reshaping with Anthropometric Modeling](https://link.springer.com/chapter/10.1007/978-981-10-8530-7_10) 
 
-*please contact with me by email for the full-text paper. *
+* please contact with me by email for the full-text paper. 
 
 ## Examples  
 - Input: your anthropometric measurements such as height, weight etc. 
