@@ -6,14 +6,11 @@ from traits.api import HasTraits, Instance, on_trait_change
 from traitsui.api import View, Item
 from mayavi import mlab
 from PyQt4 import QtGui, QtCore
-from PyQt4.QtOpenGL import *
-from OpenGL.GL import *
-from ctypes import *
 import numpy as np
 import time
 import os
-import reshaper
 from reshaper import Reshaper
+import utils
 os.environ['ETS_TOOLKIT'] = 'qt4'
 
 
@@ -21,100 +18,96 @@ os.environ['ETS_TOOLKIT'] = 'qt4'
 # Customized signal. Agment original valueChanged(int) with sliderID, and
 # the min, max values of the slider
 class IndexedQSlider(QtGui.QSlider):
-    valueChangeForwarded = QtCore.pyqtSignal(int, int, int, int)
+  valueChangeForwarded = QtCore.pyqtSignal(int, int, int, int)
+  def __init__(self, sliderID, orientation, parent=None):
+    QtGui.QSlider.__init__(self, orientation, parent)
+    self.sliderID = sliderID
+    self.connect(self, QtCore.SIGNAL('valueChanged(int)'),
+      self.valueChangeForwarder)
 
-    def __init__(self, sliderID, orientation, parent=None):
-        QtGui.QSlider.__init__(self, orientation, parent)
-        self.sliderID = sliderID
-        self.connect(self, QtCore.SIGNAL('valueChanged(int)'),
-                     self.valueChangeForwarder)
-
-    ''' Emit coustomized valuechanged sigmal '''
-
-    def valueChangeForwarder(self, val):
-        self.valueChangeForwarded.emit(
-            self.sliderID, val, self.minimum(), self.maximum())
+  ''' Emit coustomized valuechanged sigmal '''
+  def valueChangeForwarder(self, val):
+    self.valueChangeForwarded.emit(
+      self.sliderID, val, self.minimum(), self.maximum())
 
 class myAction(QtGui.QAction):
-    myact = QtCore.pyqtSignal(int)
+  myact = QtCore.pyqtSignal(int)
+  def __init__(self, _id, *args):
+    QtGui.QAction.__init__(self, *args)
+    self._id = _id
+    self.connect(self, QtCore.SIGNAL("triggered()"), self.emitSelect)
 
-    def __init__(self, _id, *args):
-        QtGui.QAction.__init__(self, *args)
-        self._id = _id
-        self.connect(self, QtCore.SIGNAL("triggered()"), self.emitSelect)
-
-    def emitSelect(self):
-        self.myact.emit(self._id)
+  def emitSelect(self):
+    self.myact.emit(self._id)
 
 class Visualization(HasTraits):
-    scene = Instance(MlabSceneModel, ())
-
-    @on_trait_change('scene.activated')
-    def update_plot(self, v, f):
-        mlab.clf()
-        mlab.triangular_mesh(v[:, 0], v[:, 1], v[:, 2], f)
-    # the layout of the dialog screated
-    view = View(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
-                     height=200, width=250, show_label=False), resizable=True)
+  scene = Instance(MlabSceneModel, ())
+  @on_trait_change('scene.activated')
+  def update_plot(self, v, f):
+    mlab.clf()
+    if not isinstance(v, str):
+      mlab.triangular_mesh(v[:, 0], v[:, 1], v[:, 2], f)
+  # the layout of the dialog screated
+  view = View(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
+    height=200, width=250, show_label=False), resizable=True)
 
 # The QWidget for rendering 3D shape
 class MayaviQWidget(QtGui.QWidget):
+  def __init__(self, parent):
+    QtGui.QWidget.__init__(self, parent)
+    layout = QtGui.QVBoxLayout(self)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(0)
+    self.visualization = Visualization()
 
-    def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
-        layout = QtGui.QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-        self.visualization = Visualization()
+    # The edit_traits call will generate the widget to embed.
+    self.ui = self.visualization.edit_traits(parent=self, kind='subpanel').control
+    layout.addWidget(self.ui)
+    self.ui.setParent(self)
 
-        # The edit_traits call will generate the widget to embed.
-        self.ui = self.visualization.edit_traits(parent=self, kind='subpanel').control
-        layout.addWidget(self.ui)
-        self.ui.setParent(self)
+    # models for shape representing
+    self.bodies = {"female": Reshaper(label="female"), "male":Reshaper(label="male")}
+    self.body = self.bodies["female"]
+    self.flag_ = 0
 
-        # models for shape representing
-        self.bodies = {"female": Reshaper(label="female"), "male":Reshaper(label="male")}
-        self.body = self.bodies["female"]
-        self.flag_ = 0
+    self.vertices = self.body.mean_vertex
+    self.normals = self.body.normals
+    self.facets = self.body.facets
+    self.input_data = np.zeros((utils.M_NUM, 1))
+    self.update()
 
-        self.vertices = self.body.mean_vertex
-        self.normals = self.body.normals
-        self.facets = self.body.facets
-        self.input_data = np.zeros((reshaper.M_NUM, 1))
-        self.update()
+  def update(self):
+    [self.vertices, self.normals, self.facets] = \
+        self.body.mapping(self.input_data, self.flag_)
+    self.vertices = self.vertices.astype('float32')
+    self.visualization.update_plot(self.vertices, self.facets)
 
-    def update(self):
-        [self.vertices, self.normals, self.facets] = \
-            self.body.mapping(self.input_data, self.flag_)
-        self.vertices = self.vertices.astype('float32')
-        self.visualization.update_plot(self.vertices, self.facets)
+  def select_mode(self, label="female", flag=0):
+    self.body = self.bodies[label]
+    self.flag_ = flag
+    self.update()
 
-    def select_mode(self, label="female", flag=0):
-        self.body = self.bodies[label]
-        self.flag_ = flag
-        self.update()
+  def sliderForwardedValueChangeHandler(self, sliderID, val, minVal, maxVal):
+    x = val / 10.0
+    self.input_data[sliderID] = x
+    start = time.time()
+    self.update()
+    print(' [**] update body in %f s' % (time.time() - start))
 
-    def sliderForwardedValueChangeHandler(self, sliderID, val, minVal, maxVal):
-        x = val / 10.0
-        self.input_data[sliderID] = x
-        start = time.time()
-        self.update()
-        print(' [**] update body in %f s' % (time.time() - start))
+  def save(self):
+    utils.save_obj("result.obj", self.vertices, self.facets+1)
+    output = np.array(utils.calc_measure(self.body.cp, self.vertices, self.facets))
+    for i in range(0, utils.M_NUM):
+      print("%s: %f" % (utils.M_STR[i], output[i, 0]))
 
-    def save(self):
-        reshaper.save_obj(os.path.join(reshaper.DATA_DIR, "test.obj"), self.vertices, self.facets+1)
-        output = np.array(reshaper.calc_measure(self.body.cp, self.vertices, self.facets))
-        for i in range(0, reshaper.M_NUM):
-            print("%s: %f" % (reshaper.M_STR[i], output[i, 0]))
-
-    def predict(self, data):
-        mask = np.zeros((reshaper.M_NUM, 1), dtype=bool)
-        for i in range(0, data.shape[0]):
-            if data[i, 0] != 0:
-                data[i, 0] -= self.body.mean_measure[i, 0]
-                data[i, 0] /= self.body.std_measure[i, 0]
-                mask[i, 0] = 1
-        self.input_data = self.body.get_predict(mask, data)
-        self.update()
-        measure = self.body.mean_measure + self.input_data*self.body.std_measure
-        return [self.input_data, measure]
+  def predict(self, data):
+    mask = np.zeros((utils.M_NUM, 1), dtype=bool)
+    for i in range(0, data.shape[0]):
+      if data[i, 0] != 0:
+        data[i, 0] -= self.body.mean_measure[i, 0]
+        data[i, 0] /= self.body.std_measure[i, 0]
+        mask[i, 0] = 1
+    self.input_data = self.body.get_predict(mask, data)
+    self.update()
+    measure = self.body.mean_measure + self.input_data*self.body.std_measure
+    return [self.input_data, measure]

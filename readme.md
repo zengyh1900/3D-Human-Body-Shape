@@ -1,66 +1,55 @@
 # 3D Human Body Reshaping with Anthropometric Modeling  
+
+![creating by deform-based global mapping](https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/docs/dg-h.png)
+
 source code of paper: [3D Human Body Reshaping with Anthropometric Modeling](https://link.springer.com/chapter/10.1007/978-981-10-8530-7_10) 
 
-please contact with me by email for the full-text paper. 
+please contact me for the free full-text paper by email. 
 
-## Examples  
-- Input: your anthropometric measurements such as height, weight etc. 
-- Output: your 3D body shape (i.e., obj file)
-
-![creating by deform-based global mapping](https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/pics/dg-h.png)
-
-
-## Instructions  
-
-### Training data
-1. download training data from [SPRING](https://graphics.soe.ucsc.edu/data/BodyModels/index.html)
-2. put the datasets under TrainingData folder 
-3. refer to src/body_utils.py for building models
-
-(Note: you can directly run the demo without training data. )
-
+## Quick start
 
 ### Environment  
-Windows/OSX/Linux
-
-### Package  
+1. Windows/OSX/Linux, python3.5
+2. install all packages you need from [.whl files](https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyqt4) or by running:
 ```
 pip install -r requirements.txt
 ```
 
-(Note: if you want to run on Windows, strongly recommend to use 'pip install' from .whl files download [here](https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyqt4))
+### Preparation
+1. download training data from [SPRING](https://graphics.soe.ucsc.edu/data/BodyModels/index.html)
+2. put the datasets under 3D-human-Body-Shape/data folder 
+3. download codes by running
+```
+git clone https://github.com/1900zyh/3D-Human-Body-Shape.git
+cd 3D-Human-Body-Shape/
+```
 
 
 ### Training
 You need to download your own datasets and run the scripts as below:
 ```
-git clone https://github.com/1900zyh/3D-Human-Body-Shape.git
-cd 3D-Human-Body-Shape/
 cd src/ 
-python body_utils.py
+python train.py
 ```
 
 ### Testing
-I have put the data needed for running demo in data folder, you can run the demo directly by running the scripts as below:
+You can test the demo using [released model](https://github.com/1900zyh/3D-Human-Body-Shape/tree/master/release_model) by running:
 ```
 cd src/
 python demo.py
 ```
 
-### Running API
+### Demo
 1. adjust size (the numbers represents times of std, e.g. 30 means +3 std)
-<!-- ![creating by deform-based global mapping](https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/pics/fig1.png) -->
-<img src="https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/pics/fig1.png" width="500" hegiht="313" align=center />
+<img src="https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/docs/fig1.png" width="500" hegiht="313" align=center />
 
 2. 'Ctrl + s' to save obj file
 
 3. choose different mapping method
-<!-- ![creating by deform-based global mapping](https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/pics/fig2.png) -->
-<img src="https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/pics/fig2.png" width="500" hegiht="313" align=center />
+<img src="https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/docs/fig2.png" width="500" hegiht="313" align=center />
 
 4. press 'PREDICT' button to input the numbers(You don't need to fill out the form, the defualt can be estimated)
-<!-- ![creating by deform-based global mapping](https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/pics/fig3.png){:height="50%" width="50%"} -->
-<img src="https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/pics/fig3.png" width="500" hegiht="313" align=center />
+<img src="https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/docs/fig3.png" width="500" hegiht="313" align=center />
 
 ### Different Mapping Methods
 1. global mapping
