@@ -40,6 +40,7 @@ def compute_normals(vertex, facet):
 
 # load facet information from txt file
 def convert_template():
+  print("starting convert_template")
   facet = np.zeros((utils.F_NUM, 3), dtype=int)
   f = open(os.path.join(DATA_DIR, 'template.txt'), 'r')
   i = 0
@@ -327,7 +328,7 @@ def get_d2v_matrix(d_inv_mean, facet, label="female"):
         v2[j], v3[j], v4[j], v1[j], v2[j], v3[j], v4[j]]
       r += 3
   d2v = scipy.sparse.coo_matrix((data, (rowidx, colidx)), shape=shape)
-  np.savez(os.path.join(DATA_DIR, "%s_d2v"%label), row=d2v.row, 
+  np.savez(os.path.join(DATA_DIR, "%s_d2v"%label), row=d2v.row,
     col=d2v.col,data=d2v.data, shape=d2v.shape)
   lu = scipy.sparse.linalg.splu(d2v.transpose().dot(d2v).tocsc())
   print(' [**] finish load A&lu of %s in %fs.' % (label, time.time() - start))
@@ -437,7 +438,7 @@ def rfe_local(dets, deform, measure, label="female", k_features=9):
   results = pool.starmap(rfe_multiprocess, tasks)
   pool.close()
   pool.join()
-  
+
   rfe_mat = np.array([ele[0] for ele in results]).reshape(utils.F_NUM, 9, k_features)
   mask = np.array([ele[1] for ele in results]).reshape(utils.F_NUM, utils.M_NUM).transpose()
 
@@ -493,13 +494,13 @@ def random_multiprocess(i, dets, deform, body_num, x, measure, k_features):
 # ===========================================================================
 
 # train all data
-def train():    
-  genders = ["male"]#, "male"]
+def train():
+  genders = ["female"]#, "male"]
   for gender in genders:
     # generate and load control point from txt to npy file
     cp = convert_cp()
-    vertex = obj2npy(gender)[0]
     facet = convert_template()
+    vertex = obj2npy(gender)[0]
     d_inv_mean, deform, dets, _, _ = load_d_data(vertex, facet, label=gender)
     measure = convert_measure(cp, vertex, facet, label=gender)[0]
     d_basis, d_coeff, _, _ = get_d_basis(deform, label=gender)
