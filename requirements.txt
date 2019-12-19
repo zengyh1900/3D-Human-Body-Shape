@@ -9,4 +9,5 @@ cvxpy==1.0.21
 fancyimpute==0.3.2
 mayavi==4.6.2
 pyopengl==3.1.0
-pyqt4==4.11.4
+#pyqt4==5.10.1
+scikit-learn==0.21.3
