@@ -4,3 +4,4 @@ result
 __pycache__
 .vs
 result.obj
+data/
