@@ -3,21 +3,22 @@
 
 import numpy as np
 import sys
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtGui import QFont
+from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtGui import QFont
+from PyQt5.QtWidgets import QLineEdit, QApplication as qApp
 from maya_widget import MayaviQWidget, myAction, IndexedQSlider
 import utils
 
 # usage: GUI for showing all models
-class HumanShapeAnalysisDemo(QtGui.QMainWindow):
+class HumanShapeAnalysisDemo(QtWidgets.QMainWindow):
   def __init__(self):
-    QtGui.QMainWindow.__init__(self)
+    QtWidgets.QMainWindow.__init__(self)
     self.statusBar().showMessage("Hello there")
-    self.mainBox = QtGui.QHBoxLayout()
+    self.mainBox = QtWidgets.QHBoxLayout()
 
-    container = QtGui.QWidget()
-    container.setWindowTitle("Embedding Mayavi in a PyQt4 Application")
-    layout = QtGui.QGridLayout(container)
+    container = QtWidgets.QWidget()
+    container.setWindowTitle("Embedding Mayavi in a PyQt5 Application")
+    layout = QtWidgets.QGridLayout(container)
     self.viewer3D = MayaviQWidget(container)
     layout.addWidget(self.viewer3D, 1, 1)
     container.show()
@@ -25,8 +26,8 @@ class HumanShapeAnalysisDemo(QtGui.QMainWindow):
     self.mainBox.addWidget(container)
     self.setWindowTitle("3D Human Body Reshaping with Anthropometric Modeling")
 
-    parentWidget = QtGui.QWidget()
-    self.box = QtGui.QVBoxLayout()
+    parentWidget = QtWidgets.QWidget()
+    self.box = QtWidgets.QVBoxLayout()
     self.set_menu()
     self.set_radio()
     self.set_button()
@@ -38,7 +39,7 @@ class HumanShapeAnalysisDemo(QtGui.QMainWindow):
     self.resize(650, 650)
 
     self.viewer3D.setSizePolicy(
-      QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
+      QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
     parentWidget.setLayout(self.mainBox)
     self.setCentralWidget(parentWidget)
 
@@ -46,17 +47,16 @@ class HumanShapeAnalysisDemo(QtGui.QMainWindow):
     menubar = self.menuBar()
     fileMenu = menubar.addMenu('&File')
 
-    exit = QtGui.QAction("Exit", self)
+    exit = QtWidgets.QAction("Exit", self)
     exit.setShortcut("Ctrl+Q")
     exit.setStatusTip('Exit application')
-    self.connect(exit, QtCore.SIGNAL(
-      'triggered()'), QtCore.SLOT('close()'))
+    exit.triggered.connect(qApp.quit)
     fileMenu.addAction(exit)
 
-    save = QtGui.QAction("Save", self)
+    save = QtWidgets.QAction("Save", self)
     save.setShortcut("Ctrl+S")
     save.setStatusTip('save obj file')
-    self.connect(save, QtCore.SIGNAL('triggered()'), self.viewer3D.save)
+    save.triggered.connect(self.viewer3D.save)
     fileMenu.addAction(save)
 
     self.flag_ = 0
@@ -64,20 +64,21 @@ class HumanShapeAnalysisDemo(QtGui.QMainWindow):
     self.mode = {0:"global_mapping", 1:"local_with_mask", 2:"local_with_rfemat"}
     for i in range(0, len(self.mode)):
       mode = myAction(i, self.mode[i], self)
-      self.connect(mode, QtCore.SIGNAL('myact(int)'), self.select_mode)
+      mode.myact.connect(self.select_mode)
+      #self.connect(mode, QtCore.SIGNAL('myact(int)'), self.select_mode)
       fileMenu.addAction(mode)
     self.setToolTip('This is a window, or <b>something</b>')
 
   def set_radio(self):
-    self.radio1 = QtGui.QRadioButton('female')
-    self.radio2 = QtGui.QRadioButton('male')
+    self.radio1 = QtWidgets.QRadioButton('female')
+    self.radio2 = QtWidgets.QRadioButton('male')
     self.radio1.setFont(QFont("Arial", 11))
     self.radio2.setFont(QFont("Arial", 11))
     self.radio1.setChecked(True)
     self.radio1.toggled.connect(self.radio_act)
     self.radio2.toggled.connect(self.radio_act)
 
-    radio_box = QtGui.QHBoxLayout()
+    radio_box = QtWidgets.QHBoxLayout()
     radio_box.addWidget(self.radio1)
     radio_box.addWidget(self.radio2)
     self.box.addLayout(radio_box)
@@ -90,20 +91,18 @@ class HumanShapeAnalysisDemo(QtGui.QMainWindow):
     self.viewer3D.select_mode(label=self.label_, flag=self.flag_)
 
   def set_button(self):
-    self.button_box = QtGui.QHBoxLayout()
+    self.button_box = QtWidgets.QHBoxLayout()
 
-    self.reset_button = QtGui.QPushButton("RESET")
+    self.reset_button = QtWidgets.QPushButton("RESET")
     self.reset_button.setStatusTip('reset input to mean value')
     self.reset_button.setFont(QFont("Arial", 11))
-    self.connect(self.reset_button, QtCore.SIGNAL(
-      'clicked()'), self.reset)
+    self.reset_button.clicked.connect(self.reset)
     self.button_box.addWidget(self.reset_button)
 
-    self.pre_button = QtGui.QPushButton("PREDICT")
+    self.pre_button = QtWidgets.QPushButton("PREDICT")
     self.pre_button.setToolTip('model your own shape')
     self.pre_button.setFont(QFont("Arial", 11))
-    self.connect(self.pre_button, QtCore.SIGNAL(
-      'clicked()'), self.show_dialog)
+    self.pre_button.clicked.connect(self.show_dialog)
     self.button_box.addWidget(self.pre_button)
     self.box.addLayout(self.button_box)
 
@@ -112,7 +111,7 @@ class HumanShapeAnalysisDemo(QtGui.QMainWindow):
     self.spin = []
     self.label = []
     for i in range(0, utils.M_NUM):
-      hbox = QtGui.QHBoxLayout()
+      hbox = QtWidgets.QHBoxLayout()
       slider = IndexedQSlider(i, QtCore.Qt.Horizontal, self)
       slider.setStatusTip('%d. %s' % (i, utils.M_STR[i]))
       slider.setRange(-30, 30)
@@ -120,12 +119,12 @@ class HumanShapeAnalysisDemo(QtGui.QMainWindow):
           self.viewer3D.sliderForwardedValueChangeHandler)
       slider.setFixedWidth(60)
       self.slider.append(slider)
-      spinBox = QtGui.QSpinBox()
+      spinBox = QtWidgets.QSpinBox()
       spinBox.setRange(-30, 30)
       spinBox.valueChanged.connect(slider.setValue)
       slider.valueChanged.connect(spinBox.setValue)
       self.spin.append(spinBox)
-      label = QtGui.QLabel()
+      label = QtWidgets.QLabel()
       label.setText(utils.M_STR[i])
       # label.setFont(QFont("Arial", 11, QFont.Bold))
       label.setFont(QFont("Arial", 12))
@@ -137,30 +136,30 @@ class HumanShapeAnalysisDemo(QtGui.QMainWindow):
       self.box.addLayout(hbox)
 
   def set_dialog(self):
-    self.pre_dialog = QtGui.QDialog()
-    self.dialogBox = QtGui.QVBoxLayout()
+    self.pre_dialog = QtWidgets.QDialog()
+    self.dialogBox = QtWidgets.QVBoxLayout()
     self.pre_dialog.setWindowTitle("Input")
     self.editList = []
     for i in range(0, utils.M_NUM):
-      edit = QtGui.QLineEdit()
+      edit = QtWidgets.QLineEdit()
       self.editList.append(edit)
-      label = QtGui.QLabel()
+      label = QtWidgets.QLabel()
       label.setText(utils.M_STR[i])
       # label.setFont(QFont("Arial", 11, QFont.Bold))
       label.setFont(QFont("Arial", 12))
       label.setFixedHeight(20)
       label.setFixedWidth(190)
-      box = QtGui.QHBoxLayout()
+      box = QtWidgets.QHBoxLayout()
       box.addWidget(label)
       box.addWidget(edit)
       self.dialogBox.addLayout(box)
-    dialogOK = QtGui.QPushButton("OK")
-    clearButton = QtGui.QPushButton("CLEAR")
+    dialogOK = QtWidgets.QPushButton("OK")
+    clearButton = QtWidgets.QPushButton("CLEAR")
     dialogOK.setFont(QFont("Arial", 11, QFont.Bold))
     clearButton.setFont(QFont("Arial", 11, QFont.Bold))
-    self.connect(dialogOK, QtCore.SIGNAL('clicked()'), self.predict)
-    self.connect(clearButton, QtCore.SIGNAL('clicked()'), self.clear)
-    box = QtGui.QHBoxLayout()
+    dialogOK.clicked.connect(self.predict)
+    clearButton.clicked.connect(self.clear)
+    box = QtWidgets.QHBoxLayout()
     box.addWidget(dialogOK)
     box.addWidget(clearButton)
     self.dialogBox.addLayout(box)
@@ -215,7 +214,7 @@ class HumanShapeAnalysisDemo(QtGui.QMainWindow):
 
 
 def show_app():
-  app = QtGui.QApplication(sys.argv)
+  app = qApp(sys.argv)
   win = HumanShapeAnalysisDemo()
   win.show()
   sys.exit(app.exec_())

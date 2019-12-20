@@ -5,7 +5,7 @@ from mayavi.core.ui.api import MayaviScene, MlabSceneModel, SceneEditor
 from traits.api import HasTraits, Instance, on_trait_change
 from traitsui.api import View, Item
 from mayavi import mlab
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtWidgets, QtCore
 import numpy as np
 import time
 import os
@@ -17,25 +17,24 @@ os.environ['ETS_TOOLKIT'] = 'qt4'
 # A QSlider with its own ID, used to determine which PC it corresponds to
 # Customized signal. Agment original valueChanged(int) with sliderID, and
 # the min, max values of the slider
-class IndexedQSlider(QtGui.QSlider):
+class IndexedQSlider(QtWidgets.QSlider):
   valueChangeForwarded = QtCore.pyqtSignal(int, int, int, int)
   def __init__(self, sliderID, orientation, parent=None):
-    QtGui.QSlider.__init__(self, orientation, parent)
+    QtWidgets.QSlider.__init__(self, orientation, parent)
     self.sliderID = sliderID
-    self.connect(self, QtCore.SIGNAL('valueChanged(int)'),
-      self.valueChangeForwarder)
+    self.valueChanged.connect(self.valueChangeForwarder)
 
   ''' Emit coustomized valuechanged sigmal '''
   def valueChangeForwarder(self, val):
     self.valueChangeForwarded.emit(
       self.sliderID, val, self.minimum(), self.maximum())
 
-class myAction(QtGui.QAction):
+class myAction(QtWidgets.QAction):
   myact = QtCore.pyqtSignal(int)
   def __init__(self, _id, *args):
-    QtGui.QAction.__init__(self, *args)
+    QtWidgets.QAction.__init__(self, *args)
     self._id = _id
-    self.connect(self, QtCore.SIGNAL("triggered()"), self.emitSelect)
+    self.triggered.connect(self.emitSelect)
 
   def emitSelect(self):
     self.myact.emit(self._id)
@@ -52,10 +51,10 @@ class Visualization(HasTraits):
     height=200, width=250, show_label=False), resizable=True)
 
 # The QWidget for rendering 3D shape
-class MayaviQWidget(QtGui.QWidget):
+class MayaviQWidget(QtWidgets.QWidget):
   def __init__(self, parent):
-    QtGui.QWidget.__init__(self, parent)
-    layout = QtGui.QVBoxLayout(self)
+    QtWidgets.QWidget.__init__(self, parent)
+    layout = QtWidgets.QVBoxLayout(self)
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(0)
     self.visualization = Visualization()
