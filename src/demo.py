@@ -144,7 +144,10 @@ class HumanShapeAnalysisDemo(QtWidgets.QMainWindow):
       edit = QtWidgets.QLineEdit()
       self.editList.append(edit)
       label = QtWidgets.QLabel()
-      label.setText(utils.M_STR[i])
+      if i == 0:
+        label.setText('{} (x2 kg)'.format(utils.M_STR[i]))
+      else:
+        label.setText('{} (cm)'.format(utils.M_STR[i]))
       # label.setFont(QFont("Arial", 11, QFont.Bold))
       label.setFont(QFont("Arial", 12))
       label.setFixedHeight(20)
