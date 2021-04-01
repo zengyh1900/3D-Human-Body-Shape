@@ -4,7 +4,7 @@
 
 source code of paper: [3D Human Body Reshaping with Anthropometric Modeling](https://link.springer.com/chapter/10.1007/978-981-10-8530-7_10) 
 
-please contact me for the free full-text paper by email. 
+please download the paper [here](https://link.springer.com/content/pdf/10.1007%2F978-981-10-8530-7_10.pdf) or you can contact me for the free full-text paper by email. 
 
 ## Quick start
 
