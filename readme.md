@@ -2,9 +2,26 @@
 
 ![creating by deform-based global mapping](https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/docs/dg-h.png)
 
-source code of paper: [3D Human Body Reshaping with Anthropometric Modeling](https://link.springer.com/chapter/10.1007/978-981-10-8530-7_10) 
+### [Paper](https://link.springer.com/chapter/10.1007/978-981-10-8530-7_10) | [Pdf](https://link.springer.com/content/pdf/10.1007%2F978-981-10-8530-7_10.pdf)
+3D Human Body Reshaping with Anthropometric Modeling<br>
+[Yanhong Zeng](https://sites.google.com/view/1900zyh),  [Jianlong Fu](https://jianlong-fu.github.io/), [Hongyang Chao](https://scholar.google.com/citations?user=qnbpG6gAAAAJ&hl).<br>
 
-please download the paper [here](https://link.springer.com/content/pdf/10.1007%2F978-981-10-8530-7_10.pdf) or you can contact me for the free full-text paper by email. 
+
+## Citation  
+If any part of our paper and code is helpful to your work, 
+please generously cite and star us :kissing_heart: :kissing_heart: :kissing_heart: !
+
+```
+@inproceedings{zeng20173d,
+  title={3D Human Body Reshaping with Anthropometric Modeling},
+  author={Zeng, Yanhong and Fu, Jianlong and Chao, Hongyang},
+  booktitle={International Conference on Internet Multimedia Computing and Service},
+  pages={96--107},
+  year={2017},
+  organization={Springer}
+}
+```
+
 
 ## Quick start
 
@@ -56,17 +73,3 @@ python demo.py
 2. [local_with_mask](https://dl.acm.org/citation.cfm?id=2758217)
 3. [local_with_rfemat](https://link.springer.com/chapter/10.1007/978-981-10-8530-7_10)
 
-
-## Citation  
-If you find this paper useful, please cite:
-
-```
-@inproceedings{zeng20173d,
-  title={3D Human Body Reshaping with Anthropometric Modeling},
-  author={Zeng, Yanhong and Fu, Jianlong and Chao, Hongyang},
-  booktitle={International Conference on Internet Multimedia Computing and Service},
-  pages={96--107},
-  year={2017},
-  organization={Springer}
-}
-```
