@@ -2,7 +2,7 @@
 
 ![creating by deform-based global mapping](https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/docs/dg-h.png)
 
-### [Paper](https://link.springer.com/chapter/10.1007/978-981-10-8530-7_10) | [Pdf](https://link.springer.com/content/pdf/10.1007%2F978-981-10-8530-7_10.pdf)
+### [Paper](https://link.springer.com/chapter/10.1007/978-981-10-8530-7_10) | [Pdf](https://link.springer.com/content/pdf/10.1007%2F978-981-10-8530-7_10.pdf) | [Arxiv](https://arxiv.org/abs/2104.01762)
 3D Human Body Reshaping with Anthropometric Modeling<br>
 [Yanhong Zeng](https://sites.google.com/view/1900zyh),  [Jianlong Fu](https://jianlong-fu.github.io/), [Hongyang Chao](https://scholar.google.com/citations?user=qnbpG6gAAAAJ&hl).<br>
 
