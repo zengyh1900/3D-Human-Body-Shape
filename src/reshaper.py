@@ -136,7 +136,6 @@ if __name__ == "__main__":
   data.append(w ** (1.0 / 3.0) * 1000)
   data.append(h * 10)
 
-  #preenche o resto dos dados do predict com 0 e faz o reshape
   for i in range(2, utils.M_NUM):
     data.append(0)
   data = np.array(data).reshape(utils.M_NUM, 1)
