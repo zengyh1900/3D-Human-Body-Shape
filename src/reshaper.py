@@ -127,8 +127,9 @@ if __name__ == "__main__":
   label = "female"
   body = Reshaper(label)
 
-  w = int(sys.argv[1])
-  h = int(sys.argv[2])
+  file_name = sys.argv[1]
+  w = int(sys.argv[2])
+  h = int(sys.argv[3])
 
   data = []
   mask = np.zeros((utils.M_NUM, 1), dtype=bool)
@@ -150,4 +151,4 @@ if __name__ == "__main__":
   [v, n, f] = body.mapping(input_data, 2) # mapper
 
 
-  utils.save_obj(os.path.join(utils.MODEL_DIR, "test.obj"), v, f+1)
+  utils.save_obj(os.path.join(utils.MODEL_DIR, file_name), v, f+1)
