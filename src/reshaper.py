@@ -127,8 +127,8 @@ if __name__ == "__main__":
   label = "female"
   body = Reshaper(label)
 
-  w = 80
-  h = 200
+  w = int(sys.argv[1])
+  h = int(sys.argv[2])
 
   data = []
   mask = np.zeros((utils.M_NUM, 1), dtype=bool)
