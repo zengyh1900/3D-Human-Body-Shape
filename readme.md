@@ -2,9 +2,25 @@
 
 ![creating by deform-based global mapping](https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/docs/dg-h.png)
 
-### [Paper](https://link.springer.com/chapter/10.1007/978-981-10-8530-7_10) | [Pdf](https://link.springer.com/content/pdf/10.1007%2F978-981-10-8530-7_10.pdf) | [Arxiv](https://arxiv.org/abs/2104.01762)
+### [Conference Paper](https://link.springer.com/chapter/10.1007/978-981-10-8530-7_10) | [Arxiv](https://arxiv.org/abs/2104.01762) | [Demo](https://sites.google.com/view/1900zyh/3dhumanbody)
 3D Human Body Reshaping with Anthropometric Modeling<br>
+In ICIMCS 2017 (Oral). <br>
 [Yanhong Zeng](https://sites.google.com/view/1900zyh),  [Jianlong Fu](https://jianlong-fu.github.io/), [Hongyang Chao](https://scholar.google.com/citations?user=qnbpG6gAAAAJ&hl).<br>
+
+
+## Introduction  
+In this paper, we design a user-friendly and accurate system for 3D human body reshaping with limited anthropometric parameters (e.g., height and weight). Specifically, we leverage MICE technique for missing data imputation and we propose a feature-selection-based local mapping method for accurate shape modeling. The proposed feature-selection-based local mapping method can select the most relevant parameters for each facet automatically for linear regression learning, which eliminates heavy human efforts for utilizing topology information of body shape, and thus a more approximate body mesh can be obtained.
+
+## Approach 
+The overview of the proposed 3D human body reshaping system is shown as below. The system consists of three parts, i.e., the Imputer, the Selector and the Mapper in both online stage and offline stage. In offline stage, the Selector takes the dataset of 3D body meshes (a) and corresponding anthropometric parameters (b) as inputs to learn the relevance masks (c) by the proposed feature-selection-based local mapping technique. The mapping matrices (d) are further learned by linear regression from the parameters selected by (c) to mesh-based body representation. In online stage, MICE is leveraged in the Imputer for the imputation of the parameters from user input (e), which is introduced in Sect. 2.1. ‘?’ in (e) indicates the missing parameters from user inputs, yet could be complemented in (f) by the proposed approach. After imputation, the vector of parameters (f) will be passed to the Mapper. By adopting (c) and (d), 3D body mesh (g) will be generated from (f) in the Mapper.
+
+![framework](https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/docs/framework.PNG)
+
+
+## Experiments
+<div align="center">
+	<img src="https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/docs/table2.PNG" alt="Editor" width="500">
+</div>
 
 
 ## Citation  
