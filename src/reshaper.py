@@ -126,14 +126,29 @@ class Reshaper:
 if __name__ == "__main__":
   label = "female"
   body = Reshaper(label)
-  measure = np.load(open(os.path.join(utils.MODEL_DIR, "%s_measure.npy"%label),"rb"))
-  mean_measure = np.array(measure.mean(axis=1)).reshape(utils.M_NUM, 1)
-  std_measure = np.array(measure.std(axis=1)).reshape(utils.M_NUM, 1)
-  t_measure = measure - mean_measure
-  t_measure /= std_measure
 
-  for i in range(100):
-    [v, n, f] = body.mapping(t_measure[:,i], 2)
-    utils.save_obj(os.path.join(utils.MODEL_DIR, "test.obj"), v, f+1)
+  file_name = sys.argv[1]
+  w = int(sys.argv[2])
+  h = int(sys.argv[3])
+
+  data = []
+  mask = np.zeros((utils.M_NUM, 1), dtype=bool)
+
+  data.append(w ** (1.0 / 3.0) * 1000)
+  data.append(h * 10)
+
+  for i in range(2, utils.M_NUM):
+    data.append(0)
+  data = np.array(data).reshape(utils.M_NUM, 1)
+
+  for i in range(0, data.shape[0]):
+    if data[i, 0] != 0:
+      data[i, 0] -= body.mean_measure[i, 0]
+      data[i, 0] /= body.std_measure[i, 0]
+      mask[i, 0] = 1
+
+  input_data = body.get_predict(mask, data) # imputer
+  [v, n, f] = body.mapping(input_data, 2) # mapper
 
 
+  utils.save_obj(os.path.join(utils.MODEL_DIR, file_name), v, f+1)
