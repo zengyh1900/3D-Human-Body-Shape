@@ -1,5 +1,5 @@
 cython==0.29.7
-numpy==1.16.1
+numpy==1.22.0
 scipy==1.2.1
 openpyxl==2.6.2
 ecos==2.0.7.post1
