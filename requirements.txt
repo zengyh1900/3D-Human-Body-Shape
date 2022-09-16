@@ -3,7 +3,7 @@ numpy==1.16.1
 scipy==1.2.1
 openpyxl==2.6.2
 ecos==2.0.7.post1
-vtk==8.1.2
+vtk==9.0.1
 traits==5.1.1
 cvxpy==1.0.21
 fancyimpute==0.3.2
