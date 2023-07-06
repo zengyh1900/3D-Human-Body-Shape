@@ -1,6 +1,6 @@
 cython==0.29.7
 numpy==1.16.1
-scipy==1.2.1
+scipy==1.10.0
 openpyxl==2.6.2
 ecos==2.0.7.post1
 vtk==8.1.2
