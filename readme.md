@@ -81,7 +81,7 @@ python demo.py
 3. choose different mapping method
 <img src="https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/docs/fig2.png" width="500" hegiht="313" align=center />
 
-4. press 'PREDICT' button to input the numbers(You don't need to fill out the form, the defualt can be estimated)
+4. press 'PREDICT' button to input the numbers(You don't need to fill out the form, the default can be estimated)
 <img src="https://raw.githubusercontent.com/1900zyh/3D-Human-Body-Shape/master/docs/fig3.png" width="500" hegiht="313" align=center />
 
 ### Different Mapping Methods
